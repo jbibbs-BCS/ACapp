@@ -52,7 +52,7 @@ struct RootView: View {
                     .badge(alertsViewModel.unacknowledgedCount)
 
                 NavigationStack {
-                    SettingsPlaceholder()
+                    SettingsView(apiClient: apiClient)
                 }
                 .tabItem {
                     Label("Settings", systemImage: "gear")
