@@ -35,7 +35,10 @@ struct RootView: View {
                 }
 
                 NavigationStack {
-                    ClientsPlaceholder()
+                    ClientsView(apiClient: apiClient)
+                        .navigationDestination(for: CentralClient.self) { _ in
+                            Text("Client Detail — Coming Soon")
+                        }
                 }
                 .tabItem {
                     Label("Clients", systemImage: "person.2")

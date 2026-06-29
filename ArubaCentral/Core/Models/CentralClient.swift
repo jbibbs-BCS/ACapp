@@ -1,6 +1,6 @@
 import Foundation
 
-struct CentralClient: Codable, Identifiable, Equatable {
+struct CentralClient: Codable, Identifiable, Equatable, Hashable {
     let macAddress: String
     let name: String?
     let ipAddress: String?
