@@ -31,4 +31,7 @@ protocol CentralAPIClientProtocol: AnyObject {
 
     // Settings
     func testConnection() async throws
+
+    // Search
+    func searchDevices(query: String) async throws -> [SearchResult]
 }

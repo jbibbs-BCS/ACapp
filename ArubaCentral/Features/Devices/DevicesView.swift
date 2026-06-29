@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct DevicesView: View {
+    private let apiClient: CentralAPIClientProtocol
     @StateObject private var viewModel: DevicesViewModel
-    @State private var searchText = ""
+    @StateObject private var searchVM: GlobalSearchViewModel
 
     init(client: CentralAPIClientProtocol) {
+        self.apiClient = client
         _viewModel = StateObject(wrappedValue: DevicesViewModel(apiClient: client))
+        _searchVM  = StateObject(wrappedValue: GlobalSearchViewModel(apiClient: client))
     }
 
     var body: some View {
@@ -15,9 +18,14 @@ struct DevicesView: View {
             retry: { Task { await viewModel.load() } }
         )
         .navigationTitle("Devices")
-        .searchable(text: $searchText, prompt: "Name, IP, or MAC")
-        .onChange(of: searchText) { _, query in
-            Task { await viewModel.search(query: query) }
+        .searchable(text: $searchVM.query, prompt: "Name, IP, or MAC")
+        .overlay(alignment: .top) {
+            if !searchVM.query.isEmpty {
+                SearchResultsOverlay(viewModel: searchVM) { result in
+                    handleDeviceSearchSelection(result)
+                }
+                .padding(.top, 8)
+            }
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -37,7 +45,7 @@ struct DevicesView: View {
     @ViewBuilder
     private func deviceList(_ items: [DeviceItem]) -> some View {
         if items.isEmpty {
-            ContentUnavailableView.search(text: searchText)
+            ContentUnavailableView.search(text: searchVM.query)
         } else {
             List(items) { item in
                 switch item {
@@ -55,6 +63,10 @@ struct DevicesView: View {
             }
             .listStyle(.insetGrouped)
         }
+    }
+
+    private func handleDeviceSearchSelection(_ result: SearchResult) {
+        searchVM.query = ""
     }
 }
 

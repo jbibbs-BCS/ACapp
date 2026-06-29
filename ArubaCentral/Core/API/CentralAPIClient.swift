@@ -218,6 +218,18 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     func testConnection() async throws {
         let _ = try await fetchSiteHealth()
     }
+
+    // MARK: - Search
+
+    func searchDevices(query: String) async throws -> [SearchResult] {
+        async let apsPage      = fetchAPs(site: nil, search: query, limit: 50, offset: 0)
+        async let switchesPage = fetchSwitches(site: nil, search: query, limit: 50, offset: 0)
+        async let clientsPage  = fetchClients(site: nil, search: query, limit: 50, offset: 0)
+        let (aps, switches, clients) = try await (apsPage, switchesPage, clientsPage)
+        return aps.items.map { .ap($0) }
+             + switches.items.map { .switch_($0) }
+             + clients.items.map { .client($0) }
+    }
 }
 
 private struct EmptyResponse: Codable {}

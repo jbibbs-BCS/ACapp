@@ -36,5 +36,6 @@ final class PreviewMockClient: CentralAPIClientProtocol {
     func blinkAPLED(serial: String) async throws {}
     func disconnectAllClientsFromAP(serial: String) async throws {}
     func testConnection() async throws {}
+    func searchDevices(query: String) async throws -> [SearchResult] { [] }
 }
 #endif

@@ -1,12 +1,15 @@
 import SwiftUI
 
 struct ClientsView: View {
+    private let apiClient: CentralAPIClientProtocol
     @StateObject private var viewModel: ClientsViewModel
-    @State private var searchText = ""
+    @StateObject private var searchVM: GlobalSearchViewModel
     @State private var showingSitePicker = false
 
     init(apiClient: CentralAPIClientProtocol) {
+        self.apiClient = apiClient
         _viewModel = StateObject(wrappedValue: ClientsViewModel(apiClient: apiClient))
+        _searchVM  = StateObject(wrappedValue: GlobalSearchViewModel(apiClient: apiClient))
     }
 
     var body: some View {
@@ -36,8 +39,15 @@ struct ClientsView: View {
             }
         }
         .navigationTitle("Clients")
-        .searchable(text: $searchText, prompt: "IP, MAC, or hostname")
-        .onChange(of: searchText) { q in Task { await viewModel.search(query: q) } }
+        .searchable(text: $searchVM.query, prompt: "IP, MAC, or hostname")
+        .overlay(alignment: .top) {
+            if !searchVM.query.isEmpty {
+                SearchResultsOverlay(viewModel: searchVM) { result in
+                    handleClientSearchSelection(result)
+                }
+                .padding(.top, 8)
+            }
+        }
         .toolbar { sitePickerToolbar }
         .sheet(isPresented: $showingSitePicker) {
             SitePickerSheet { site in
@@ -117,6 +127,10 @@ struct ClientsView: View {
                     .labelStyle(.titleAndIcon)
             }
         }
+    }
+
+    private func handleClientSearchSelection(_ result: SearchResult) {
+        searchVM.query = ""
     }
 }
 

@@ -1,10 +1,14 @@
 import SwiftUI
 
 struct DashboardView: View {
+    private let apiClient: CentralAPIClientProtocol
     @StateObject private var viewModel: DashboardViewModel
+    @StateObject private var searchVM: GlobalSearchViewModel
 
     init(client: CentralAPIClientProtocol) {
+        self.apiClient = client
         _viewModel = StateObject(wrappedValue: DashboardViewModel(apiClient: client))
+        _searchVM  = StateObject(wrappedValue: GlobalSearchViewModel(apiClient: client))
     }
 
     var body: some View {
@@ -14,6 +18,15 @@ struct DashboardView: View {
             retry: { Task { await viewModel.load() } }
         )
         .navigationTitle("Dashboard")
+        .searchable(text: $searchVM.query, prompt: "Search by hostname, IP, or MAC")
+        .overlay(alignment: .top) {
+            if !searchVM.query.isEmpty {
+                SearchResultsOverlay(viewModel: searchVM) { result in
+                    handleSearchSelection(result)
+                }
+                .padding(.top, 8)
+            }
+        }
         .task { await viewModel.load() }
         .refreshable { await viewModel.refresh() }
     }
@@ -37,6 +50,10 @@ struct DashboardView: View {
                 SiteDetailView(site: site)
             }
         }
+    }
+
+    private func handleSearchSelection(_ result: SearchResult) {
+        searchVM.query = ""
     }
 }
 

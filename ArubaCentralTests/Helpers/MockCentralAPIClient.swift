@@ -21,18 +21,21 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
     var blinkError:          APIError?                                           = nil
     var disconnectError:     APIError?                                           = nil
     var testConnectionError: APIError?                                           = nil
+    var searchDevicesResult: Result<[SearchResult], APIError>                    = .success([])
+    var searchDevicesDelay: TimeInterval                                          = 0
 
     // MARK: - Call tracking
-    var fetchSitesCallCount      = 0
-    var fetchAPsCallCount        = 0
-    var fetchClientsCallCount    = 0
-    var fetchAlertsCallCount     = 0
-    var rebootCallCount          = 0
-    var blinkCallCount           = 0
-    var clearAlertCallCount      = 0
-    var disconnectCallCount      = 0
-    var lastSearchQuery: String? = nil
-    var lastSiteFilter: String?  = nil
+    var fetchSitesCallCount        = 0
+    var fetchAPsCallCount          = 0
+    var fetchClientsCallCount      = 0
+    var fetchAlertsCallCount       = 0
+    var rebootCallCount            = 0
+    var blinkCallCount             = 0
+    var clearAlertCallCount        = 0
+    var disconnectCallCount        = 0
+    var searchDevicesCallCount     = 0
+    var lastSearchQuery: String?   = nil
+    var lastSiteFilter: String?    = nil
 
     // MARK: - Protocol conformance
 
@@ -116,6 +119,15 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
 
     func testConnection() async throws {
         if let error = testConnectionError { throw error }
+    }
+
+    func searchDevices(query: String) async throws -> [SearchResult] {
+        searchDevicesCallCount += 1
+        lastSearchQuery = query
+        if searchDevicesDelay > 0 {
+            try await Task.sleep(nanoseconds: UInt64(searchDevicesDelay * 1_000_000_000))
+        }
+        return try searchDevicesResult.get()
     }
 }
 
