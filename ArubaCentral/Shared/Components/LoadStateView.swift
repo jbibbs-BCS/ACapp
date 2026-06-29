@@ -40,6 +40,16 @@ struct LoadStateView<T, Content: View>: View {
     }
 }
 
+extension View {
+    func onChangeCompat<V: Equatable>(of value: V, perform action: @escaping (V) -> Void) -> some View {
+        if #available(iOS 17, macOS 14, *) {
+            return self.onChange(of: value) { _, newValue in action(newValue) }
+        } else {
+            return self.onChange(of: value, perform: action)
+        }
+    }
+}
+
 #Preview {
     VStack(spacing: 20) {
         LoadStateView(

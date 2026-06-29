@@ -1,4 +1,4 @@
-import Foundation
+@preconcurrency import Foundation
 
 struct CentralClient: Codable, Identifiable, Equatable, Hashable {
     let macAddress: String
@@ -36,6 +36,23 @@ struct CentralClient: Codable, Identifiable, Equatable, Hashable {
         self.txDataRate             = txDataRate
         self.rxDataRate             = rxDataRate
         self.connectedAt            = connectedAt
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        macAddress             = try c.decode(String.self,             forKey: .macAddress)
+        name                   = try c.decodeIfPresent(String.self,    forKey: .name)
+        ipAddress              = try c.decodeIfPresent(String.self,    forKey: .ipAddress)
+        connectionType         = try c.decode(ClientConnectionType.self, forKey: .connectionType)
+        associatedDeviceSerial = try c.decodeIfPresent(String.self,    forKey: .associatedDeviceSerial)
+        siteName               = try c.decodeIfPresent(String.self,    forKey: .siteName)
+        ssid                   = try c.decodeIfPresent(String.self,    forKey: .ssid)
+        vlan                   = try c.decodeIfPresent(Int.self,       forKey: .vlan)
+        port                   = try c.decodeIfPresent(String.self,    forKey: .port)
+        signalStrength         = try c.decodeIfPresent(Int.self,       forKey: .signalStrength)
+        txDataRate             = try c.decodeIfPresent(Double.self,    forKey: .txDataRate)
+        rxDataRate             = try c.decodeIfPresent(Double.self,    forKey: .rxDataRate)
+        connectedAt            = try c.decodeIfPresent(Date.self,      forKey: .connectedAt)
     }
 
     enum CodingKeys: String, CodingKey {

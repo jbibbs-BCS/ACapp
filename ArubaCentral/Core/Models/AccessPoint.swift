@@ -1,4 +1,4 @@
-import Foundation
+@preconcurrency import Foundation
 
 struct AccessPoint: Codable, Identifiable, Equatable, Hashable {
     let serial: String
@@ -28,6 +28,20 @@ struct AccessPoint: Codable, Identifiable, Equatable, Hashable {
         self.uptime      = uptime
         self.siteName    = site
         self.clientCount = clientCount
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        serial      = try c.decode(String.self,       forKey: .serial)
+        name        = try c.decode(String.self,       forKey: .name)
+        model       = try c.decode(String.self,       forKey: .model)
+        status      = try c.decode(DeviceStatus.self, forKey: .status)
+        ipAddress   = try c.decodeIfPresent(String.self, forKey: .ipAddress)
+        macAddress  = try c.decode(String.self,       forKey: .macAddress)
+        firmware    = try c.decodeIfPresent(String.self, forKey: .firmware)
+        uptime      = try c.decodeIfPresent(Int.self,    forKey: .uptime)
+        siteName    = try c.decodeIfPresent(String.self, forKey: .siteName)
+        clientCount = try c.decodeIfPresent(Int.self,    forKey: .clientCount)
     }
 
     enum CodingKeys: String, CodingKey {

@@ -1,3 +1,5 @@
+@preconcurrency import Foundation
+
 struct PaginatedResponse<T: Codable>: Codable {
     let items: [T]
     let total: Int

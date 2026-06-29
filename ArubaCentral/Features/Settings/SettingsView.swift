@@ -125,13 +125,13 @@ struct SettingsView: View {
     private var notificationsSection: some View {
         Section {
             Toggle("Critical", isOn: $viewModel.notificationPrefs.critical)
-                .onChange(of: viewModel.notificationPrefs.critical) { _ in viewModel.saveNotificationPrefs() }
+                .onChangeCompat(of: viewModel.notificationPrefs.critical) { _ in viewModel.saveNotificationPrefs() }
             Toggle("Major", isOn: $viewModel.notificationPrefs.major)
-                .onChange(of: viewModel.notificationPrefs.major) { _ in viewModel.saveNotificationPrefs() }
+                .onChangeCompat(of: viewModel.notificationPrefs.major) { _ in viewModel.saveNotificationPrefs() }
             Toggle("Minor", isOn: $viewModel.notificationPrefs.minor)
-                .onChange(of: viewModel.notificationPrefs.minor) { _ in viewModel.saveNotificationPrefs() }
+                .onChangeCompat(of: viewModel.notificationPrefs.minor) { _ in viewModel.saveNotificationPrefs() }
             Toggle("Info", isOn: $viewModel.notificationPrefs.info)
-                .onChange(of: viewModel.notificationPrefs.info) { _ in viewModel.saveNotificationPrefs() }
+                .onChangeCompat(of: viewModel.notificationPrefs.info) { _ in viewModel.saveNotificationPrefs() }
         } header: {
             Text("Notifications")
         } footer: {

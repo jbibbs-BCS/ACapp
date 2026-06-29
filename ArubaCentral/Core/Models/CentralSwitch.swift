@@ -1,4 +1,4 @@
-import Foundation
+@preconcurrency import Foundation
 
 // Named CentralSwitch to avoid collision with Swift's switch keyword
 struct CentralSwitch: Codable, Identifiable, Equatable, Hashable {
@@ -29,6 +29,20 @@ struct CentralSwitch: Codable, Identifiable, Equatable, Hashable {
         self.uptime    = uptime
         self.siteName  = site
         self.stackId   = stackId
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        serial     = try c.decode(String.self,       forKey: .serial)
+        name       = try c.decode(String.self,       forKey: .name)
+        model      = try c.decode(String.self,       forKey: .model)
+        status     = try c.decode(DeviceStatus.self, forKey: .status)
+        ipAddress  = try c.decodeIfPresent(String.self, forKey: .ipAddress)
+        macAddress = try c.decodeIfPresent(String.self, forKey: .macAddress)
+        firmware   = try c.decodeIfPresent(String.self, forKey: .firmware)
+        uptime     = try c.decodeIfPresent(Int.self,    forKey: .uptime)
+        siteName   = try c.decodeIfPresent(String.self, forKey: .siteName)
+        stackId    = try c.decodeIfPresent(String.self, forKey: .stackId)
     }
 
     enum CodingKeys: String, CodingKey {

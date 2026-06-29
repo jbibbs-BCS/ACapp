@@ -20,16 +20,25 @@ final class NetworkMonitor: ObservableObject {
                 if satisfied {
                     self.isConnected = true
                 } else {
-                    // Debounce: NWPathMonitor can briefly report .unsatisfied at startup
-                    self.offlineTask = Task {
+                    // NWPathMonitor gives false negatives in some simulator/macOS combinations.
+                    // Verify with a real HTTP round-trip before showing the offline banner.
+                    self.offlineTask = Task { [weak self] in
                         try? await Task.sleep(nanoseconds: 1_000_000_000)
-                        guard !Task.isCancelled else { return }
-                        self.isConnected = false
+                        guard !Task.isCancelled, let self else { return }
+                        let reachable = await Self.checkReachability()
+                        if !reachable { self.isConnected = false }
                     }
                 }
             }
         }
         monitor.start(queue: queue)
+    }
+
+    private static func checkReachability() async -> Bool {
+        guard let url = URL(string: "https://captive.apple.com/hotspot-detect.html") else { return true }
+        var request = URLRequest(url: url, timeoutInterval: 5)
+        request.httpMethod = "HEAD"
+        return (try? await URLSession.shared.data(for: request)) != nil
     }
 
     deinit {

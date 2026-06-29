@@ -27,7 +27,7 @@ final class PushNotificationHandler: NSObject, ObservableObject, UNUserNotificat
             let granted = try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
             if granted {
-                await UIApplication.shared.registerForRemoteNotifications()
+                UIApplication.shared.registerForRemoteNotifications()
             }
             authorizationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
         } catch {
@@ -63,8 +63,16 @@ final class PushNotificationHandler: NSObject, ObservableObject, UNUserNotificat
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let userInfo = response.notification.request.content.userInfo
-        Task { @MainActor in self.handleIncomingNotification(userInfo: userInfo) }
+        let alertId = response.notification.request.content.userInfo["alert_id"] as? String
+        if let alertId {
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .didReceiveAlertNotification,
+                    object: nil,
+                    userInfo: ["alert_id": alertId]
+                )
+            }
+        }
         completionHandler()
     }
 

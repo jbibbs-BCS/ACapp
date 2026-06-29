@@ -1,4 +1,4 @@
-import Foundation
+@preconcurrency import Foundation
 
 struct CentralAlert: Codable, Identifiable, Equatable, Hashable {
     let id: String

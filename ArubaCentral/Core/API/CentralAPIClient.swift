@@ -1,4 +1,4 @@
-import Foundation
+@preconcurrency import Foundation
 import Combine
 
 @MainActor
@@ -11,10 +11,10 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
 
     init(authManager: AuthTokenManager,
          session: URLSession = .shared,
-         baseURL: URL = CentralRegion.defaultRegion.baseURL) {
+         baseURL: URL? = nil) {
         self.authManager = authManager
         self.session = session
-        self.baseURL = baseURL
+        self.baseURL = baseURL ?? CentralRegion.defaultRegion.baseURL
         self.decoder = {
             let d = JSONDecoder()
             d.dateDecodingStrategy = .secondsSince1970

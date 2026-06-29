@@ -28,7 +28,7 @@ struct AlertsView: View {
                 viewModel.navigateTo(alertId: alertId)
             }
         }
-        .onChange(of: viewModel.selectedAlertId) { alertId in
+        .onChangeCompat(of: viewModel.selectedAlertId) { alertId in
             guard let alertId,
                   case .loaded(let alerts) = viewModel.alertsState,
                   let alert = alerts.first(where: { $0.id == alertId }) else { return }

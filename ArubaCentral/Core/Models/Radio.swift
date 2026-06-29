@@ -1,3 +1,5 @@
+@preconcurrency import Foundation
+
 struct Radio: Codable, Identifiable, Equatable {
     let index: Int
     let band: String
