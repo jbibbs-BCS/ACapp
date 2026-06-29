@@ -10,7 +10,7 @@ final class DashboardViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockClient = MockCentralAPIClient()
-        sut = DashboardViewModel(client: mockClient)
+        sut = DashboardViewModel(apiClient: mockClient)
     }
 
     override func tearDown() {

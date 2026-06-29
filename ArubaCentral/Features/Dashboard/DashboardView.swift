@@ -4,7 +4,7 @@ struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
 
     init(client: CentralAPIClientProtocol) {
-        _viewModel = StateObject(wrappedValue: DashboardViewModel(client: client))
+        _viewModel = StateObject(wrappedValue: DashboardViewModel(apiClient: client))
     }
 
     var body: some View {

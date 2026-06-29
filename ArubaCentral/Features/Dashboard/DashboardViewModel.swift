@@ -7,8 +7,8 @@ final class DashboardViewModel: ObservableObject {
 
     private let client: CentralAPIClientProtocol
 
-    init(client: CentralAPIClientProtocol) {
-        self.client = client
+    init(apiClient: CentralAPIClientProtocol) {
+        self.client = apiClient
     }
 
     func load() async {
