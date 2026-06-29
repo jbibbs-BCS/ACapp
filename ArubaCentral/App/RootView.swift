@@ -2,13 +2,14 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var networkMonitor: NetworkMonitor
+    @EnvironmentObject private var apiClient: CentralAPIClient
     @AppStorage("appearance") private var appearanceRaw: String = "system"
 
     var body: some View {
         ZStack(alignment: .top) {
             TabView {
                 NavigationStack {
-                    DashboardPlaceholder()
+                    DashboardView(client: apiClient)
                 }
                 .tabItem {
                     Label("Dashboard", systemImage: "chart.bar")
@@ -65,4 +66,5 @@ struct RootView: View {
 #Preview {
     RootView()
         .environmentObject(NetworkMonitor())
+        .environmentObject(CentralAPIClient(authManager: AuthTokenManager()))
 }
