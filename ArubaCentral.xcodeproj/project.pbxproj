@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		6EAC838D2FF1A5060070F50B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6EAC83722FF1A0060070F50B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6EAC83792FF1A0060070F50B;
+			remoteInfo = ArubaCentral;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		6EAC837A2FF1A0060070F50B /* ArubaCentral.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArubaCentral.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EAC838B2FF1A5060070F50B /* ArubaCentralTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ArubaCentralTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -142,24 +152,6 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXTargetDependency section */
-		6EAC838E2FF1A5060070F50B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6EAC83792FF1A0060070F50B /* ArubaCentral */;
-			targetProxy = 6EAC838D2FF1A5060070F50B /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
-/* Begin PBXContainerItemProxy section */
-		6EAC838D2FF1A5060070F50B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 6EAC83722FF1A0060070F50B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6EAC83792FF1A0060070F50B;
-			remoteInfo = ArubaCentral;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXResourcesBuildPhase section */
 		6EAC83782FF1A0060070F50B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
@@ -187,49 +179,15 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		6EAC838E2FF1A5060070F50B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6EAC83792FF1A0060070F50B /* ArubaCentral */;
+			targetProxy = 6EAC838D2FF1A5060070F50B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		6EAC838F2FF1A5060070F50B /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M3WJAGD9LA;
-				ENABLE_TESTING = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Bibbs.ArubaCentralTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ArubaCentral.app/ArubaCentral";
-				TEST_TARGET_NAME = ArubaCentral;
-			};
-			name = Debug;
-		};
-		6EAC83912FF1A5060070F50B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M3WJAGD9LA;
-				ENABLE_TESTING = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Bibbs.ArubaCentralTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ArubaCentral.app/ArubaCentral";
-				TEST_TARGET_NAME = ArubaCentral;
-			};
-			name = Release;
-		};
 		6EAC83832FF1A0080070F50B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -431,6 +389,48 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		6EAC838F2FF1A5060070F50B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M3WJAGD9LA;
+				ENABLE_TESTING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Bibbs.ArubaCentralTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ArubaCentral.app/ArubaCentral";
+				TEST_TARGET_NAME = ArubaCentral;
+			};
+			name = Debug;
+		};
+		6EAC83912FF1A5060070F50B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M3WJAGD9LA;
+				ENABLE_TESTING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Bibbs.ArubaCentralTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ArubaCentral.app/ArubaCentral";
+				TEST_TARGET_NAME = ArubaCentral;
 			};
 			name = Release;
 		};
