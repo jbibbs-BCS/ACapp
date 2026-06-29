@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject private var networkMonitor: NetworkMonitor
     @EnvironmentObject private var apiClient: CentralAPIClient
+    @EnvironmentObject private var alertsViewModel: AlertsViewModel
     @AppStorage("appearance") private var appearanceRaw: String = "system"
 
     var body: some View {
@@ -44,12 +45,11 @@ struct RootView: View {
                     Label("Clients", systemImage: "person.2")
                 }
 
-                NavigationStack {
-                    AlertsPlaceholder()
-                }
-                .tabItem {
-                    Label("Alerts", systemImage: "bell")
-                }
+                AlertsView(viewModel: alertsViewModel)
+                    .tabItem {
+                        Label("Alerts", systemImage: alertsViewModel.unacknowledgedCount > 0 ? "bell.badge" : "bell")
+                    }
+                    .badge(alertsViewModel.unacknowledgedCount)
 
                 NavigationStack {
                     SettingsPlaceholder()
@@ -79,7 +79,9 @@ struct RootView: View {
 }
 
 #Preview {
+    let client = CentralAPIClient(authManager: AuthTokenManager())
     RootView()
         .environmentObject(NetworkMonitor())
-        .environmentObject(CentralAPIClient(authManager: AuthTokenManager()))
+        .environmentObject(client)
+        .environmentObject(AlertsViewModel(apiClient: client))
 }

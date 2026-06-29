@@ -1,6 +1,6 @@
 import Foundation
 
-struct CentralAlert: Codable, Identifiable, Equatable {
+struct CentralAlert: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let severity: AlertSeverity

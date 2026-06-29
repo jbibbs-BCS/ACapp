@@ -17,3 +17,25 @@ enum AlertSeverity: String, Codable, Comparable, Equatable {
         lhs.sortOrder < rhs.sortOrder
     }
 }
+
+import SwiftUI
+
+extension AlertSeverity {
+    var color: Color {
+        switch self {
+        case .critical: return .red
+        case .major:    return .orange
+        case .minor:    return .yellow
+        case .info:     return .blue
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .critical: return "exclamationmark.octagon.fill"
+        case .major:    return "exclamationmark.triangle.fill"
+        case .minor:    return "exclamationmark.circle.fill"
+        case .info:     return "info.circle.fill"
+        }
+    }
+}

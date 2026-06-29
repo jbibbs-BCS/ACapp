@@ -26,6 +26,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
     var fetchSitesCallCount      = 0
     var fetchAPsCallCount        = 0
     var fetchClientsCallCount    = 0
+    var fetchAlertsCallCount     = 0
     var rebootCallCount          = 0
     var blinkCallCount           = 0
     var clearAlertCallCount      = 0
@@ -89,6 +90,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
     }
 
     func fetchAlerts(limit: Int, offset: Int) async throws -> PaginatedResponse<CentralAlert> {
+        fetchAlertsCallCount += 1
         return try alertsResult.get()
     }
 
