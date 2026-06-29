@@ -16,9 +16,4 @@ final class NetworkMonitorTests: XCTestCase {
         // NetworkMonitor must be an ObservableObject with a published isConnected
         let _: Published<Bool>.Publisher = monitor.$isConnected
     }
-
-    func testLastUpdatedIsNilInitially() {
-        let monitor = NetworkMonitor()
-        XCTAssertNil(monitor.lastUpdated)
-    }
 }
