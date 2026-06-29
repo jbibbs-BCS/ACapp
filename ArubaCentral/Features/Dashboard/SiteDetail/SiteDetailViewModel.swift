@@ -7,7 +7,7 @@ final class SiteDetailViewModel: ObservableObject {
     @Published private(set) var switchesState: LoadState<[CentralSwitch]> = .idle
 
     let site: Site
-    private let client: CentralAPIClientProtocol
+    private let apiClient: CentralAPIClientProtocol
     private let pageSize = 100
 
     private var apOffset          = 0
@@ -18,9 +18,9 @@ final class SiteDetailViewModel: ObservableObject {
     private var switchHasMore         = false
     private var isLoadingMoreSwitches = false
 
-    init(site: Site, client: CentralAPIClientProtocol) {
-        self.site   = site
-        self.client = client
+    init(site: Site, apiClient: CentralAPIClientProtocol) {
+        self.site      = site
+        self.apiClient = apiClient
     }
 
     func load() async {
@@ -62,7 +62,7 @@ final class SiteDetailViewModel: ObservableObject {
 
     private func fetchAPs(offset: Int, appending: Bool) async {
         do {
-            let page = try await client.fetchAPs(site: site.name, search: nil,
+            let page = try await apiClient.fetchAPs(site: site.name, search: nil,
                                                  limit: pageSize, offset: offset)
             apOffset  = offset + page.items.count
             apHasMore = page.hasMore
@@ -81,7 +81,7 @@ final class SiteDetailViewModel: ObservableObject {
 
     private func fetchSwitches(offset: Int, appending: Bool) async {
         do {
-            let page = try await client.fetchSwitches(site: site.name, search: nil,
+            let page = try await apiClient.fetchSwitches(site: site.name, search: nil,
                                                       limit: pageSize, offset: offset)
             switchOffset  = offset + page.items.count
             switchHasMore = page.hasMore

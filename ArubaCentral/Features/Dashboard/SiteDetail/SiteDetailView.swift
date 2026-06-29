@@ -5,11 +5,11 @@ struct SiteDetailView: View {
 
     init(site: Site) {
         _viewModel = StateObject(wrappedValue: SiteDetailViewModel(site: site,
-                                                                    client: CentralAPIClient.placeholder))
+                                                                    apiClient: CentralAPIClient.placeholder))
     }
 
-    init(site: Site, client: CentralAPIClientProtocol) {
-        _viewModel = StateObject(wrappedValue: SiteDetailViewModel(site: site, client: client))
+    init(site: Site, apiClient: CentralAPIClientProtocol) {
+        _viewModel = StateObject(wrappedValue: SiteDetailViewModel(site: site, apiClient: apiClient))
     }
 
     var body: some View {
@@ -184,7 +184,7 @@ private extension CentralAPIClient {
         SiteDetailView(
             site: Site(id: "s1", name: "HQ Campus", healthScore: 90,
                        apCount: 24, switchCount: 4, clientCount: 310),
-            client: PreviewMockClient()
+            apiClient: PreviewMockClient()
         )
     }
 }

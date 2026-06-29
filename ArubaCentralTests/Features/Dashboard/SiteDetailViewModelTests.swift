@@ -11,7 +11,7 @@ final class SiteDetailViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockClient = MockCentralAPIClient()
-        sut = SiteDetailViewModel(site: site, client: mockClient)
+        sut = SiteDetailViewModel(site: site, apiClient: mockClient)
     }
 
     override func tearDown() {
@@ -145,7 +145,7 @@ final class SiteDetailViewModelTests: XCTestCase {
 
     private func makeAP(serial: String) -> AccessPoint {
         AccessPoint(serial: serial, name: serial, model: "AP-635",
-                    status: .up, ipAddress: nil, macAddress: nil,
+                    status: .up, ipAddress: nil, macAddress: "aa:bb:cc:dd:ee:ff",
                     firmware: nil, uptime: nil, site: "HQ", clientCount: 0)
     }
 

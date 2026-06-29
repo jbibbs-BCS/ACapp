@@ -6,7 +6,7 @@ struct AccessPoint: Codable, Identifiable, Equatable, Hashable {
     let model: String
     let status: DeviceStatus
     let ipAddress: String?
-    let macAddress: String?
+    let macAddress: String
     let firmware: String?
     let uptime: Int?
     let siteName: String?
@@ -16,7 +16,7 @@ struct AccessPoint: Codable, Identifiable, Equatable, Hashable {
 
     /// Memberwise init using `site` label for the site name (mirrors `CentralSwitch` init style).
     init(serial: String, name: String, model: String, status: DeviceStatus,
-         ipAddress: String?, macAddress: String?, firmware: String?,
+         ipAddress: String?, macAddress: String, firmware: String?,
          uptime: Int?, site: String?, clientCount: Int?) {
         self.serial      = serial
         self.name        = name
