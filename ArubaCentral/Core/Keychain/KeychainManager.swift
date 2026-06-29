@@ -1,88 +1,98 @@
 import Foundation
 import Security
 
+enum KeychainError: Error, Equatable {
+    case notFound
+    case saveFailed(OSStatus)
+    case deleteFailed(OSStatus)
+    case dataCorrupted
+}
+
 final class KeychainManager {
     static let shared = KeychainManager()
     private let service = "com.aruba.central"
 
-    private init() {}
-
-    // MARK: - clientID
-
-    func saveClientID(_ value: String) {
-        save(value, key: "clientID")
+    enum Key: String, CaseIterable {
+        case clientId     = "clientId"
+        case clientSecret = "clientSecret"
+        case accessToken  = "accessToken"
+        case tokenExpiry  = "tokenExpiry"
+        case region       = "region"
     }
 
-    func clientID() -> String? {
-        retrieve(key: "clientID")
+    init() {}
+
+    // MARK: - Generic Key-based API (used by AuthTokenManager)
+
+    func save(_ value: String, for key: Key) throws {
+        guard let data = value.data(using: .utf8) else { throw KeychainError.dataCorrupted }
+        let query: [CFString: Any] = [
+            kSecClass:          kSecClassGenericPassword,
+            kSecAttrService:    service,
+            kSecAttrAccount:    key.rawValue,
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked,
+            kSecValueData:      data
+        ]
+        SecItemDelete(query as CFDictionary)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else { throw KeychainError.saveFailed(status) }
     }
 
-    // MARK: - clientSecret
-
-    func saveClientSecret(_ value: String) {
-        save(value, key: "clientSecret")
-    }
-
-    func clientSecret() -> String? {
-        retrieve(key: "clientSecret")
-    }
-
-    // MARK: - region
-
-    func saveRegion(_ value: String) {
-        save(value, key: "region")
-    }
-
-    func region() -> String? {
-        retrieve(key: "region")
-    }
-
-    // MARK: - clearAll
-
-    func clearAll() {
-        delete(key: "clientID")
-        delete(key: "clientSecret")
-        delete(key: "region")
-    }
-
-    // MARK: - Private
-
-    private func save(_ value: String, key: String) {
-        guard let data = value.data(using: .utf8) else { return }
+    func retrieve(for key: Key) throws -> String {
         let query: [CFString: Any] = [
             kSecClass:           kSecClassGenericPassword,
             kSecAttrService:     service,
-            kSecAttrAccount:     key,
+            kSecAttrAccount:     key.rawValue,
             kSecAttrAccessible:  kSecAttrAccessibleWhenUnlocked,
-            kSecValueData:       data
-        ]
-        SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
-    }
-
-    private func retrieve(key: String) -> String? {
-        let query: [CFString: Any] = [
-            kSecClass:            kSecClassGenericPassword,
-            kSecAttrService:      service,
-            kSecAttrAccount:      key,
-            kSecAttrAccessible:   kSecAttrAccessibleWhenUnlocked,
-            kSecReturnData:       true,
-            kSecMatchLimit:       kSecMatchLimitOne
+            kSecReturnData:      true,
+            kSecMatchLimit:      kSecMatchLimitOne
         ]
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess,
               let data = result as? Data,
-              let string = String(data: data, encoding: .utf8) else { return nil }
+              let string = String(data: data, encoding: .utf8) else {
+            throw KeychainError.notFound
+        }
         return string
     }
 
-    private func delete(key: String) {
+    func delete(for key: Key) {
         let query: [CFString: Any] = [
-            kSecClass:        kSecClassGenericPassword,
-            kSecAttrService:  service,
-            kSecAttrAccount:  key
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: key.rawValue
         ]
         SecItemDelete(query as CFDictionary)
+    }
+
+    // MARK: - Credential-specific convenience API (legacy / backward compat)
+
+    func saveClientID(_ value: String) {
+        try? save(value, for: .clientId)
+    }
+
+    func clientID() -> String? {
+        try? retrieve(for: .clientId)
+    }
+
+    func saveClientSecret(_ value: String) {
+        try? save(value, for: .clientSecret)
+    }
+
+    func clientSecret() -> String? {
+        try? retrieve(for: .clientSecret)
+    }
+
+    func saveRegion(_ value: String) {
+        try? save(value, for: .region)
+    }
+
+    func region() -> String? {
+        try? retrieve(for: .region)
+    }
+
+    func clearAll() {
+        Key.allCases.forEach { delete(for: $0) }
     }
 }
