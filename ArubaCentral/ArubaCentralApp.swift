@@ -6,6 +6,9 @@ struct ArubaCentralApp: App {
     @StateObject private var authManager     = AuthTokenManager()
     @StateObject private var apiClient: CentralAPIClient
     @StateObject private var alertsViewModel: AlertsViewModel
+    @StateObject private var pushHandler     = PushNotificationHandler()
+
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
     init() {
         let auth = AuthTokenManager()
@@ -24,6 +27,29 @@ struct ArubaCentralApp: App {
                 .environmentObject(authManager)
                 .environmentObject(apiClient)
                 .environmentObject(alertsViewModel)
+                .environmentObject(pushHandler)
+                .onAppear { appDelegate.pushHandler = pushHandler }
+                .onReceive(authManager.$isAuthenticated) { authenticated in
+                    if authenticated {
+                        Task { await pushHandler.requestAuthorizationAndRegister() }
+                    }
+                }
         }
+    }
+}
+
+// MARK: - AppDelegate for APNs token callbacks
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    var pushHandler: PushNotificationHandler?
+
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Task { @MainActor in pushHandler?.didRegister(deviceToken: deviceToken) }
+    }
+
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Task { @MainActor in pushHandler?.didFailRegistration(error: error) }
     }
 }
