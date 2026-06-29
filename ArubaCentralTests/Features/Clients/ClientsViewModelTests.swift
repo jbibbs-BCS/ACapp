@@ -97,10 +97,9 @@ final class ClientsViewModelTests: XCTestCase {
     func testLoadNextPageDoesNothingWhenNoMore() async {
         mockClient.clientsResult = .success(.of([makeClient("aa:11")]))
         await sut.selectSite("HQ")
-        let callsBefore = mockClient.fetchSitesCallCount
+        let callsBefore = mockClient.fetchClientsCallCount
         await sut.loadNextPage()
-        // fetchClients call count should not increase
-        XCTAssertEqual(mockClient.fetchSitesCallCount, callsBefore)
+        XCTAssertEqual(mockClient.fetchClientsCallCount, callsBefore)
     }
 
     // MARK: - wireless/wired grouping

@@ -25,6 +25,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
     // MARK: - Call tracking
     var fetchSitesCallCount      = 0
     var fetchAPsCallCount        = 0
+    var fetchClientsCallCount    = 0
     var rebootCallCount          = 0
     var blinkCallCount           = 0
     var clearAlertCallCount      = 0
@@ -77,6 +78,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
     }
 
     func fetchClients(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralClient> {
+        fetchClientsCallCount += 1
         lastSiteFilter  = site
         lastSearchQuery = search
         return try clientsResult.get()
