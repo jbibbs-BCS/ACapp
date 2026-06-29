@@ -49,7 +49,7 @@ struct SwitchDetailView: View {
 
     @ViewBuilder private var portsTab: some View {
         LoadStateView(state: viewModel.portsState,
-                      content: { ports in SwitchPortListView(ports: ports) },
+                      content: { ports in PortDiagramView(ports: ports, onBounce: { _ in }) },
                       retry: { Task { await viewModel.load() } })
     }
 
@@ -89,29 +89,6 @@ private struct SwitchOverviewContent: View {
         if d > 0 { return "\(d)d \(h)h" }
         if h > 0 { return "\(h)h \(m)m" }
         return "\(m)m"
-    }
-}
-
-private struct SwitchPortListView: View {
-    let ports: [SwitchInterface]
-    var body: some View {
-        List(ports) { port in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(port.portId).font(.subheadline.monospaced())
-                    if let dev = port.connectedDevice {
-                        Text(dev).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                Text(port.status == .up ? "Up" : "Down")
-                    .font(.caption)
-                    .foregroundStyle(port.status == .up ? .green : .secondary)
-                if let speed = port.speed {
-                    Text(speed).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-        }.listStyle(.insetGrouped)
     }
 }
 
