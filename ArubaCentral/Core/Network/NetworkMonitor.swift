@@ -11,6 +11,10 @@ final class NetworkMonitor: ObservableObject {
     private var offlineTask: Task<Void, Never>?
 
     init() {
+        #if targetEnvironment(simulator)
+        return  // NWPathMonitor is unreliable on simulator; stay connected
+        #endif
+
         monitor.pathUpdateHandler = { [weak self] path in
             let satisfied = path.status == .satisfied
             Task { @MainActor [weak self] in
@@ -19,8 +23,8 @@ final class NetworkMonitor: ObservableObject {
                 if satisfied {
                     self.isConnected = true
                 } else {
-                    // NWPathMonitor has false negatives on simulator and some macOS configs.
-                    // Wait 2 s, then verify with concurrent HTTP probes before showing the banner.
+                    // Verify with TCP probes before showing the banner.
+                    // Raw TCP bypasses app-layer blocks that affect URLSession.
                     self.offlineTask = Task { [weak self] in
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
                         guard !Task.isCancelled, let self else { return }
@@ -34,16 +38,11 @@ final class NetworkMonitor: ObservableObject {
         monitor.start(queue: queue)
     }
 
-    // Fires three HEAD requests concurrently; returns true as soon as any one succeeds.
-    // Multiple endpoints handle corporate firewalls that may block specific domains.
+    // TCP probes to known IPs — no DNS needed, harder to block than HTTP.
     private static func checkReachability() async -> Bool {
         await withTaskGroup(of: Bool.self) { group in
-            for urlString in [
-                "https://www.apple.com",
-                "https://www.google.com",
-                "https://captive.apple.com/hotspot-detect.html"
-            ] {
-                group.addTask { await probe(urlString) }
+            for (host, port) in [("1.1.1.1", 53), ("8.8.8.8", 53), ("17.253.144.10", 443)] {
+                group.addTask { await tcpProbe(host: host, port: UInt16(port)) }
             }
             for await result in group {
                 if result { return true }
@@ -52,11 +51,38 @@ final class NetworkMonitor: ObservableObject {
         }
     }
 
-    private static func probe(_ urlString: String) async -> Bool {
-        guard let url = URL(string: urlString) else { return false }
-        var request = URLRequest(url: url, timeoutInterval: 5)
-        request.httpMethod = "HEAD"
-        return (try? await URLSession.shared.data(for: request)) != nil
+    private static func tcpProbe(host: String, port: UInt16) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let conn = NWConnection(
+                host: NWEndpoint.Host(host),
+                port: NWEndpoint.Port(rawValue: port)!,
+                using: .tcp
+            )
+            let q = DispatchQueue(label: "com.aruba.central.probe.\(host)")
+            var done = false
+            conn.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    guard !done else { return }
+                    done = true
+                    conn.cancel()
+                    continuation.resume(returning: true)
+                case .failed, .cancelled:
+                    guard !done else { return }
+                    done = true
+                    continuation.resume(returning: false)
+                default:
+                    break
+                }
+            }
+            conn.start(queue: q)
+            q.asyncAfter(deadline: .now() + 5) {
+                guard !done else { return }
+                done = true
+                conn.cancel()
+                continuation.resume(returning: false)
+            }
+        }
     }
 
     deinit { monitor.cancel() }
