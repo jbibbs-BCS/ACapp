@@ -4,5 +4,5 @@ struct PaginatedResponse<T: Codable>: Codable {
     let offset: Int
     let limit: Int
 
-    var hasMore: Bool { total > offset + items.count }
+    var hasMore: Bool { total > offset + limit }
 }
