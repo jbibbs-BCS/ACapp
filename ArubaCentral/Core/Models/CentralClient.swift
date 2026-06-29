@@ -17,6 +17,27 @@ struct CentralClient: Codable, Identifiable, Equatable {
 
     var id: String { macAddress }
 
+    /// Memberwise init using `site:` label for the site name (mirrors `AccessPoint` init style).
+    init(macAddress: String, name: String?, ipAddress: String?,
+         connectionType: ClientConnectionType, associatedDeviceSerial: String?,
+         site: String?, ssid: String?, vlan: Int?, port: String?,
+         signalStrength: Int?, txDataRate: Double?, rxDataRate: Double?,
+         connectedAt: Date?) {
+        self.macAddress             = macAddress
+        self.name                   = name
+        self.ipAddress              = ipAddress
+        self.connectionType         = connectionType
+        self.associatedDeviceSerial = associatedDeviceSerial
+        self.siteName               = site
+        self.ssid                   = ssid
+        self.vlan                   = vlan
+        self.port                   = port
+        self.signalStrength         = signalStrength
+        self.txDataRate             = txDataRate
+        self.rxDataRate             = rxDataRate
+        self.connectedAt            = connectedAt
+    }
+
     enum CodingKeys: String, CodingKey {
         case macAddress            = "mac_address"
         case name
