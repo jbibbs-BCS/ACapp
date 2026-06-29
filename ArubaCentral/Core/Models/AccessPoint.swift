@@ -6,10 +6,10 @@ struct AccessPoint: Codable, Identifiable, Equatable {
     let model: String
     let status: DeviceStatus
     let ipAddress: String?
-    let macAddress: String?
+    let macAddress: String
     let firmware: String?
     let uptime: Int?
-    let site: String?
+    let siteName: String?
     let clientCount: Int?
 
     var id: String { serial }
@@ -23,7 +23,7 @@ struct AccessPoint: Codable, Identifiable, Equatable {
         case macAddress  = "mac_address"
         case firmware
         case uptime
-        case site        = "site_name"
+        case siteName    = "site_name"
         case clientCount = "client_count"
     }
 }

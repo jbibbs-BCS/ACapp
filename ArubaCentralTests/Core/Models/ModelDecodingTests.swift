@@ -77,7 +77,8 @@ final class ModelDecodingTests: XCTestCase {
             "serial": "SN002",
             "name": "AP-Down",
             "model": "AP-515",
-            "status": "Down"
+            "status": "Down",
+            "mac_address": "aa:bb:cc:dd:ee:ff"
         }
         """.data(using: .utf8)!
         let ap = try decoder.decode(AccessPoint.self, from: json)
@@ -106,6 +107,10 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(sw.serial, "SW001")
         XCTAssertEqual(sw.id, "SW001")
         XCTAssertEqual(sw.status, .up)
+        XCTAssertEqual(sw.name, "Core-Switch-1")
+        XCTAssertEqual(sw.model, "6300M")
+        XCTAssertEqual(sw.ipAddress, "10.0.0.1")
+        XCTAssertEqual(sw.siteName, "HQ Campus")
     }
 
     // MARK: - CentralClient

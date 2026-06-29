@@ -6,7 +6,7 @@ struct CentralClient: Codable, Identifiable, Equatable {
     let ipAddress: String?
     let connectionType: ClientConnectionType
     let associatedDeviceSerial: String?
-    let site: String?
+    let siteName: String?
     let ssid: String?
     let vlan: Int?
     let port: String?
@@ -23,7 +23,7 @@ struct CentralClient: Codable, Identifiable, Equatable {
         case ipAddress             = "ip_address"
         case connectionType        = "client_type"
         case associatedDeviceSerial = "associated_device"
-        case site                  = "site_name"
+        case siteName              = "site_name"
         case ssid
         case vlan
         case port

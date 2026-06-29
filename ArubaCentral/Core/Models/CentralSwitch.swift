@@ -10,7 +10,7 @@ struct CentralSwitch: Codable, Identifiable, Equatable {
     let macAddress: String?
     let firmware: String?
     let uptime: Int?
-    let site: String?
+    let siteName: String?
     let stackId: String?
 
     var id: String { serial }
@@ -24,7 +24,7 @@ struct CentralSwitch: Codable, Identifiable, Equatable {
         case macAddress = "mac_address"
         case firmware
         case uptime
-        case site       = "site_name"
+        case siteName   = "site_name"
         case stackId    = "stack_id"
     }
 }

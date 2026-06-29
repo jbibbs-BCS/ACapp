@@ -6,8 +6,8 @@ struct CentralAlert: Codable, Identifiable, Equatable {
     let severity: AlertSeverity
     let description: String?
     let deviceSerial: String?
-    let site: String?
-    let timestamp: Date
+    let siteName: String?
+    let createdAt: Date
     let isCleared: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -16,8 +16,8 @@ struct CentralAlert: Codable, Identifiable, Equatable {
         case severity
         case description = "alert_description"
         case deviceSerial = "device_serial"
-        case site        = "site_name"
-        case timestamp   = "created_at"
+        case siteName    = "site_name"
+        case createdAt   = "created_at"
         case isCleared   = "is_cleared"
     }
 }
