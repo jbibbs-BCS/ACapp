@@ -18,6 +18,7 @@ struct ArubaCentralApp: App {
         _authManager     = StateObject(wrappedValue: auth)
         _apiClient       = StateObject(wrappedValue: client)
         _alertsViewModel = StateObject(wrappedValue: AlertsViewModel(apiClient: client))
+        AlertBackgroundRefresh.register()
     }
 
     var body: some Scene {
@@ -33,6 +34,9 @@ struct ArubaCentralApp: App {
                     if authenticated {
                         Task { await pushHandler.requestAuthorizationAndRegister() }
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    AlertBackgroundRefresh.scheduleNext()
                 }
         }
     }
