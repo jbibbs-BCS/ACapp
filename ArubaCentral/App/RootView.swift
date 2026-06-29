@@ -59,10 +59,10 @@ struct RootView: View {
             NavigationStack {
                 DashboardView(client: apiClient)
                     .navigationDestination(for: AccessPoint.self) { ap in
-                        APDetailPlaceholder(ap: ap)
+                        APDetailView(ap: ap, apiClient: apiClient)
                     }
                     .navigationDestination(for: CentralSwitch.self) { sw in
-                        SwitchDetailPlaceholder(sw: sw)
+                        SwitchDetailView(sw: sw, apiClient: apiClient)
                     }
             }
         }
@@ -86,10 +86,10 @@ struct RootView: View {
             NavigationStack {
                 DevicesView(client: apiClient)
                     .navigationDestination(for: AccessPoint.self) { ap in
-                        APDetailPlaceholder(ap: ap)
+                        APDetailView(ap: ap, apiClient: apiClient)
                     }
                     .navigationDestination(for: CentralSwitch.self) { sw in
-                        SwitchDetailPlaceholder(sw: sw)
+                        SwitchDetailView(sw: sw, apiClient: apiClient)
                     }
             }
         }

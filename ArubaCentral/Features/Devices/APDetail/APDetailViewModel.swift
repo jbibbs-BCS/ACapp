@@ -31,9 +31,13 @@ final class APDetailViewModel: ObservableObject {
             radiosState  = .loaded(r)
             clientsState = .loaded(c.items)
         } catch let error as APIError {
-            detailState = .error(error)
+            detailState  = .error(error)
+            radiosState  = .error(error)
+            clientsState = .error(error)
         } catch {
-            detailState = .error(.networkError)
+            detailState  = .error(.networkError)
+            radiosState  = .error(.networkError)
+            clientsState = .error(.networkError)
         }
     }
 

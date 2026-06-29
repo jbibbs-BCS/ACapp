@@ -34,11 +34,19 @@ struct DashboardView: View {
     @ViewBuilder
     private func siteList(_ sites: [Site]) -> some View {
         if sites.isEmpty {
-            ContentUnavailableView(
-                "No Sites",
-                systemImage: "building.2",
-                description: Text("No sites found in your Central account.")
-            )
+            VStack(spacing: 16) {
+                Image(systemName: "building.2")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text("No Sites")
+                    .font(.headline)
+                Text("No sites found in your Central account.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List(sites) { site in
                 NavigationLink(value: site) {
@@ -47,7 +55,13 @@ struct DashboardView: View {
             }
             .listStyle(.insetGrouped)
             .navigationDestination(for: Site.self) { site in
-                SiteDetailView(site: site)
+                SiteDetailView(site: site, apiClient: apiClient)
+            }
+            .navigationDestination(for: AccessPoint.self) { ap in
+                APDetailView(ap: ap, apiClient: apiClient)
+            }
+            .navigationDestination(for: CentralSwitch.self) { sw in
+                SwitchDetailView(sw: sw, apiClient: apiClient)
             }
         }
     }

@@ -112,6 +112,11 @@ struct ClientsView: View {
                     NavigationLink(value: client) {
                         ClientRowView(client: client)
                     }
+                    .onAppear {
+                        if client.id == viewModel.wiredClients.last?.id {
+                            Task { await viewModel.loadNextPage() }
+                        }
+                    }
                 }
             }
         }

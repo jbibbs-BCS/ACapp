@@ -3,8 +3,11 @@ import Combine
 import UserNotifications
 import UIKit
 
-// Replace with actual relay endpoint before shipping (open item #3)
-private let relayBaseURL = URL(string: "https://relay.example.com")!
+private let relayBaseURL: URL? = {
+    let raw = "https://relay.example.com"
+    guard !raw.contains("example.com") else { return nil }
+    return URL(string: raw)
+}()
 
 @MainActor
 final class PushNotificationHandler: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
@@ -93,6 +96,7 @@ final class PushNotificationHandler: NSObject, ObservableObject, UNUserNotificat
     // MARK: - Relay registration
 
     private func postTokenToRelay(token: String) async {
+        guard let baseURL = relayBaseURL else { return }
         let prefs = NotificationPreferences.load()
         let body: [String: Any] = [
             "device_token": token,
@@ -105,7 +109,7 @@ final class PushNotificationHandler: NSObject, ObservableObject, UNUserNotificat
             ]
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
-        var request = URLRequest(url: relayBaseURL.appendingPathComponent("/register"))
+        var request = URLRequest(url: baseURL.appendingPathComponent("/register"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = data

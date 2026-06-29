@@ -45,7 +45,14 @@ struct DevicesView: View {
     @ViewBuilder
     private func deviceList(_ items: [DeviceItem]) -> some View {
         if items.isEmpty {
-            ContentUnavailableView.search(text: searchVM.query)
+            VStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+                Text("No results for \"\(searchVM.query)\"")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List(items) { item in
                 switch item {

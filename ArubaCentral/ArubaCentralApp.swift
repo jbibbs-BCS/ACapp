@@ -15,6 +15,7 @@ struct ArubaCentralApp: App {
         let regionId = UserDefaults.standard.string(forKey: "selectedRegionId") ?? "us1"
         let region   = CentralRegion.all.first { $0.id == regionId } ?? CentralRegion.defaultRegion
         let client   = CentralAPIClient(authManager: auth, baseURL: region.baseURL)
+        AlertBackgroundRefresh.shared = AlertBackgroundRefresh(apiClient: client)
         _authManager     = StateObject(wrappedValue: auth)
         _apiClient       = StateObject(wrappedValue: client)
         _alertsViewModel = StateObject(wrappedValue: AlertsViewModel(apiClient: client))

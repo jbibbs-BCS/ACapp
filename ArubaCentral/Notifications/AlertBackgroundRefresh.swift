@@ -4,6 +4,7 @@ import UserNotifications
 
 final class AlertBackgroundRefresh {
     static let taskIdentifier = "com.aruba.central.alertrefresh"
+    nonisolated(unsafe) static var shared: AlertBackgroundRefresh?
 
     private let apiClient: CentralAPIClientProtocol
 
@@ -29,7 +30,22 @@ final class AlertBackgroundRefresh {
 
     private static func handle(task: BGAppRefreshTask) {
         scheduleNext()
-        task.setTaskCompleted(success: true)
+        guard let refresher = AlertBackgroundRefresh.shared else {
+            task.setTaskCompleted(success: false)
+            return
+        }
+        let prefs = NotificationPreferences.load()
+        let workTask = Task {
+            do {
+                let alerts = try await refresher.fetchUnacknowledgedAlerts()
+                let filtered = refresher.filter(alerts: alerts, by: prefs)
+                await refresher.postLocalNotifications(for: filtered)
+                task.setTaskCompleted(success: true)
+            } catch {
+                task.setTaskCompleted(success: false)
+            }
+        }
+        task.expirationHandler = { workTask.cancel() }
     }
 
     func fetchUnacknowledgedAlerts() async throws -> [CentralAlert] {
