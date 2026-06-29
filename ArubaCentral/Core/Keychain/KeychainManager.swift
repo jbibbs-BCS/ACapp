@@ -1,61 +1,88 @@
 import Foundation
 import Security
 
-struct KeychainManager {
+final class KeychainManager {
+    static let shared = KeychainManager()
     private let service = "com.aruba.central"
 
-    enum Key: String, CaseIterable {
-        case clientId     = "client_id"
-        case clientSecret = "client_secret"
-        case accessToken  = "access_token"
-        case tokenExpiry  = "token_expiry"
+    private init() {}
+
+    // MARK: - clientID
+
+    func saveClientID(_ value: String) {
+        save(value, key: "clientID")
     }
 
-    func save(_ value: String, for key: Key) throws {
-        let data = Data(value.utf8)
+    func clientID() -> String? {
+        retrieve(key: "clientID")
+    }
+
+    // MARK: - clientSecret
+
+    func saveClientSecret(_ value: String) {
+        save(value, key: "clientSecret")
+    }
+
+    func clientSecret() -> String? {
+        retrieve(key: "clientSecret")
+    }
+
+    // MARK: - region
+
+    func saveRegion(_ value: String) {
+        save(value, key: "region")
+    }
+
+    func region() -> String? {
+        retrieve(key: "region")
+    }
+
+    // MARK: - clearAll
+
+    func clearAll() {
+        delete(key: "clientID")
+        delete(key: "clientSecret")
+        delete(key: "region")
+    }
+
+    // MARK: - Private
+
+    private func save(_ value: String, key: String) {
+        guard let data = value.data(using: .utf8) else { return }
         let query: [CFString: Any] = [
-            kSecClass:       kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key.rawValue,
-            kSecValueData:   data
+            kSecClass:           kSecClassGenericPassword,
+            kSecAttrService:     service,
+            kSecAttrAccount:     key,
+            kSecAttrAccessible:  kSecAttrAccessibleWhenUnlocked,
+            kSecValueData:       data
         ]
-        // Delete existing item first to allow overwrite
         SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw KeychainError.saveFailed(status)
-        }
+        SecItemAdd(query as CFDictionary, nil)
     }
 
-    func retrieve(for key: Key) throws -> String {
+    private func retrieve(key: String) -> String? {
         let query: [CFString: Any] = [
             kSecClass:            kSecClassGenericPassword,
             kSecAttrService:      service,
-            kSecAttrAccount:      key.rawValue,
+            kSecAttrAccount:      key,
+            kSecAttrAccessible:   kSecAttrAccessibleWhenUnlocked,
             kSecReturnData:       true,
             kSecMatchLimit:       kSecMatchLimitOne
         ]
-        var result: AnyObject?
+        var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess,
               let data = result as? Data,
-              let string = String(data: data, encoding: .utf8) else {
-            throw KeychainError.notFound
-        }
+              let string = String(data: data, encoding: .utf8) else { return nil }
         return string
     }
 
-    func delete(for key: Key) {
+    private func delete(key: String) {
         let query: [CFString: Any] = [
-            kSecClass:       kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key.rawValue
+            kSecClass:        kSecClassGenericPassword,
+            kSecAttrService:  service,
+            kSecAttrAccount:  key
         ]
         SecItemDelete(query as CFDictionary)
     }
-}
-
-enum KeychainError: Error, Equatable {
-    case saveFailed(OSStatus)
-    case notFound
 }

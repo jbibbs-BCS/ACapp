@@ -2,80 +2,64 @@ import XCTest
 @testable import ArubaCentral
 
 final class KeychainManagerTests: XCTestCase {
-
-    var sut: KeychainManager!
+    private var sut: KeychainManager!
 
     override func setUp() {
         super.setUp()
-        sut = KeychainManager()
-        // Clean up any leftover test data
-        KeychainManager.Key.allCases.forEach { sut.delete(for: $0) }
+        sut = KeychainManager.shared
+        sut.clearAll()
     }
 
     override func tearDown() {
-        KeychainManager.Key.allCases.forEach { sut.delete(for: $0) }
-        sut = nil
+        sut.clearAll()
         super.tearDown()
     }
 
-    func testSaveAndRetrieveClientId() throws {
-        try sut.save("my-client-id", for: .clientId)
-        let retrieved = try sut.retrieve(for: .clientId)
-        XCTAssertEqual(retrieved, "my-client-id")
+    func test_clientID_nilBeforeSave() {
+        XCTAssertNil(sut.clientID())
     }
 
-    func testSaveAndRetrieveClientSecret() throws {
-        try sut.save("super-secret-value", for: .clientSecret)
-        let retrieved = try sut.retrieve(for: .clientSecret)
-        XCTAssertEqual(retrieved, "super-secret-value")
+    func test_clientID_roundTrip() {
+        sut.saveClientID("my-client-id")
+        XCTAssertEqual(sut.clientID(), "my-client-id")
     }
 
-    func testOverwriteExistingValue() throws {
-        try sut.save("first-value", for: .clientId)
-        try sut.save("second-value", for: .clientId)
-        let retrieved = try sut.retrieve(for: .clientId)
-        XCTAssertEqual(retrieved, "second-value")
+    func test_clientSecret_roundTrip() {
+        sut.saveClientSecret("super-secret-value")
+        XCTAssertEqual(sut.clientSecret(), "super-secret-value")
     }
 
-    func testRetrieveNonExistentKeyThrows() {
-        XCTAssertThrowsError(try sut.retrieve(for: .accessToken)) { error in
-            XCTAssertEqual(error as? KeychainError, .notFound)
-        }
+    func test_region_roundTrip() {
+        sut.saveRegion("us1")
+        XCTAssertEqual(sut.region(), "us1")
     }
 
-    func testDeleteRemovesValue() throws {
-        try sut.save("to-be-deleted", for: .clientId)
-        sut.delete(for: .clientId)
-        XCTAssertThrowsError(try sut.retrieve(for: .clientId))
+    func test_region_nilBeforeSave() {
+        XCTAssertNil(sut.region())
     }
 
-    func testDeleteNonExistentKeyDoesNotThrow() {
-        // Should not crash or throw
-        sut.delete(for: .tokenExpiry)
+    func test_clearAll_removesAllCredentials() {
+        sut.saveClientID("id")
+        sut.saveClientSecret("secret")
+        sut.saveRegion("eu1")
+        sut.clearAll()
+        XCTAssertNil(sut.clientID())
+        XCTAssertNil(sut.clientSecret())
+        XCTAssertNil(sut.region())
     }
 
-    func testSaveEmptyString() throws {
-        try sut.save("", for: .clientId)
-        let retrieved = try sut.retrieve(for: .clientId)
-        XCTAssertEqual(retrieved, "")
+    func test_overwrite_updatesValue() {
+        sut.saveClientID("first")
+        sut.saveClientID("second")
+        XCTAssertEqual(sut.clientID(), "second")
     }
 
-    func testSaveSpecialCharacters() throws {
-        let special = "abc!@#$%^&*()_+-=[]{}|;':\",./<>?"
-        try sut.save(special, for: .clientSecret)
-        let retrieved = try sut.retrieve(for: .clientSecret)
-        XCTAssertEqual(retrieved, special)
-    }
-
-    func testAllKeysIndependent() throws {
-        try sut.save("id-value", for: .clientId)
-        try sut.save("secret-value", for: .clientSecret)
-        try sut.save("token-value", for: .accessToken)
-        try sut.save("12345.678", for: .tokenExpiry)
-
-        XCTAssertEqual(try sut.retrieve(for: .clientId), "id-value")
-        XCTAssertEqual(try sut.retrieve(for: .clientSecret), "secret-value")
-        XCTAssertEqual(try sut.retrieve(for: .accessToken), "token-value")
-        XCTAssertEqual(try sut.retrieve(for: .tokenExpiry), "12345.678")
+    func test_keysAreIndependent() {
+        sut.saveClientID("id-value")
+        sut.saveClientSecret("secret-value")
+        sut.saveRegion("us1")
+        XCTAssertEqual(sut.clientID(), "id-value")
+        XCTAssertEqual(sut.clientSecret(), "secret-value")
+        XCTAssertEqual(sut.region(), "us1")
     }
 }
