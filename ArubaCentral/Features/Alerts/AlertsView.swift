@@ -17,8 +17,9 @@ struct AlertsView: View {
             )
             .navigationTitle("Alerts")
             .navigationDestination(for: CentralAlert.self) { alert in
-                Text("Alert Detail — Coming Soon")
-                    .navigationTitle(alert.name)
+                AlertDetailView(alert: alert, onAcknowledge: {
+                    Task { await viewModel.acknowledge(alertId: alert.id) }
+                })
             }
         }
         .task { await viewModel.load() }
