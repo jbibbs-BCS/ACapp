@@ -20,3 +20,15 @@ struct AlertsPlaceholder: View {
 struct SettingsPlaceholder: View {
     var body: some View { Text("Settings").navigationTitle("Settings") }
 }
+
+// MARK: - Device detail placeholders (replaced in Phase 5)
+
+struct APDetailPlaceholder: View {
+    let ap: AccessPoint
+    var body: some View { Text(ap.name).navigationTitle(ap.name) }
+}
+
+struct SwitchDetailPlaceholder: View {
+    let sw: CentralSwitch
+    var body: some View { Text(sw.name).navigationTitle(sw.name) }
+}

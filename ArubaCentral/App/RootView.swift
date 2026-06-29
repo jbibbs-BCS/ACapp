@@ -10,6 +10,12 @@ struct RootView: View {
             TabView {
                 NavigationStack {
                     DashboardView(client: apiClient)
+                        .navigationDestination(for: AccessPoint.self) { ap in
+                            APDetailPlaceholder(ap: ap)
+                        }
+                        .navigationDestination(for: CentralSwitch.self) { sw in
+                            SwitchDetailPlaceholder(sw: sw)
+                        }
                 }
                 .tabItem {
                     Label("Dashboard", systemImage: "chart.bar")

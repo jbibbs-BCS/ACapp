@@ -1,7 +1,7 @@
 import Foundation
 
 // Named CentralSwitch to avoid collision with Swift's switch keyword
-struct CentralSwitch: Codable, Identifiable, Equatable {
+struct CentralSwitch: Codable, Identifiable, Equatable, Hashable {
     let serial: String
     let name: String
     let model: String
@@ -14,6 +14,22 @@ struct CentralSwitch: Codable, Identifiable, Equatable {
     let stackId: String?
 
     var id: String { serial }
+
+    /// Memberwise init using `site` label for the site name.
+    init(serial: String, name: String, model: String, status: DeviceStatus,
+         ipAddress: String?, macAddress: String?, firmware: String?,
+         uptime: Int?, site: String?, stackId: String?) {
+        self.serial    = serial
+        self.name      = name
+        self.model     = model
+        self.status    = status
+        self.ipAddress = ipAddress
+        self.macAddress = macAddress
+        self.firmware  = firmware
+        self.uptime    = uptime
+        self.siteName  = site
+        self.stackId   = stackId
+    }
 
     enum CodingKeys: String, CodingKey {
         case serial
