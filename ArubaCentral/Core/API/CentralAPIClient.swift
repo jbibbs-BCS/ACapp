@@ -85,7 +85,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     // MARK: - Sites
 
     func fetchSiteHealth() async throws -> [Site] {
-        let request = try await buildRequest(path: "/getsitehealthv1")
+        let request = try await buildRequest(path: "/sitesv1")
         return try await perform(request)
     }
 
@@ -104,8 +104,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchAPDetail(serial: String) async throws -> AccessPoint {
-        let request = try await buildRequest(path: "/accesspointdetailsv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
+        let request = try await buildRequest(path: "/accesspointsv1/\(serial)")
         return try await perform(request)
     }
 
@@ -116,7 +115,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchAPClients(serial: String, limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<CentralClient> {
-        let request = try await buildRequest(path: "/listunifiedclients", queryItems: [
+        let request = try await buildRequest(path: "/clientsv1", queryItems: [
             .init(name: "associated_device", value: serial),
             .init(name: "limit",             value: "\(limit)"),
             .init(name: "offset",            value: "\(offset)")
@@ -139,8 +138,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch {
-        let request = try await buildRequest(path: "/switchv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
+        let request = try await buildRequest(path: "/switchesv1/\(serial)")
         return try await perform(request)
     }
 
@@ -166,13 +164,13 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         ]
         if let site   { items.append(.init(name: "site_name", value: site)) }
         if let search { items.append(.init(name: "search",    value: search)) }
-        let request = try await buildRequest(path: "/listunifiedclients", queryItems: items)
+        let request = try await buildRequest(path: "/clientsv1", queryItems: items)
         return try await perform(request)
     }
 
     func fetchClientDetail(macAddress: String) async throws -> CentralClient {
-        let request = try await buildRequest(path: "/getclientdetails",
-                                             queryItems: [.init(name: "mac_address", value: macAddress)])
+        let mac = macAddress.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? macAddress
+        let request = try await buildRequest(path: "/clientsv1/\(mac)")
         return try await perform(request)
     }
 
@@ -200,14 +198,20 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func blinkAPLED(serial: String) async throws {
-        let request = try await postRequest(path: "/locateapv1", body: ["serial": serial])
+        let request = try await postRequest(path: "/accesspointsv1/\(serial)/action/led_flash", body: EmptyBody())
         try await performVoid(request)
     }
 
     func disconnectAllClientsFromAP(serial: String) async throws {
-        let request = try await postRequest(path: "/disconnectallusersapv1", body: ["serial": serial])
+        let request = try await postRequest(path: "/accesspointsv1/\(serial)/action/disconnect_clients", body: EmptyBody())
         try await performVoid(request)
     }
+
+    // OPEN ITEM: bounce port endpoint not confirmed in New Central MRT docs
+    // func bounceSwitchPort(serial: String, port: String) async throws { ... }
+
+    // OPEN ITEM: disconnect individual client endpoint not confirmed in New Central MRT docs
+    // func disconnectClient(mac: String) async throws { ... }
 
     // MARK: - Settings
 
@@ -217,3 +221,4 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
 }
 
 private struct EmptyResponse: Codable {}
+private struct EmptyBody: Encodable {}
