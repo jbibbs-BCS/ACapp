@@ -36,8 +36,8 @@ struct RootView: View {
 
                 NavigationStack {
                     ClientsView(apiClient: apiClient)
-                        .navigationDestination(for: CentralClient.self) { _ in
-                            Text("Client Detail — Coming Soon")
+                        .navigationDestination(for: CentralClient.self) { client in
+                            ClientDetailView(client: client, apiClient: apiClient)
                         }
                 }
                 .tabItem {
