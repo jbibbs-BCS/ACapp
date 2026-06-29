@@ -6,22 +6,19 @@ import SwiftUI
 final class ThreeColumnDevicesViewTests: XCTestCase {
 
     private var mockClient: MockCentralAPIClient!
-    private var viewModel: DevicesViewModel!
 
     override func setUp() {
         super.setUp()
         mockClient = MockCentralAPIClient()
-        viewModel = DevicesViewModel(apiClient: mockClient)
     }
 
     override func tearDown() {
-        viewModel = nil
         mockClient = nil
         super.tearDown()
     }
 
     func test_init_doesNotCrash() {
-        let sut = ThreeColumnDevicesView(viewModel: viewModel)
+        let sut = ThreeColumnDevicesView(apiClient: mockClient)
         XCTAssertNotNil(sut)
     }
 

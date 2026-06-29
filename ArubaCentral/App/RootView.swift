@@ -73,7 +73,7 @@ struct RootView: View {
         if sizeClass == .regular {
             GeometryReader { geo in
                 if LayoutHelper.isThreeColumn(width: geo.size.width) {
-                    ThreeColumnDevicesView(viewModel: DevicesViewModel(apiClient: apiClient))
+                    ThreeColumnDevicesView(apiClient: apiClient)
                 } else {
                     SplitTabView {
                         DevicesView(client: apiClient)

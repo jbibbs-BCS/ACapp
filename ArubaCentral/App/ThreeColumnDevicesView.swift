@@ -7,8 +7,12 @@ final class ThreeColumnCoordinator: ObservableObject {
 }
 
 struct ThreeColumnDevicesView: View {
-    @ObservedObject var viewModel: DevicesViewModel
+    @StateObject private var viewModel: DevicesViewModel
     @StateObject private var coordinator = ThreeColumnCoordinator()
+
+    init(apiClient: CentralAPIClientProtocol) {
+        _viewModel = StateObject(wrappedValue: DevicesViewModel(apiClient: apiClient))
+    }
 
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all)) {
