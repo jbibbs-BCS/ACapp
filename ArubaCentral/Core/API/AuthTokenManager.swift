@@ -3,7 +3,7 @@ import Combine
 
 @MainActor
 final class AuthTokenManager: ObservableObject {
-    private let keychain = KeychainManager()
+    private let keychain = KeychainManager.shared
     private let tokenURL = URL(string: "https://sso.common.cloud.hpe.com/as/token.oauth2")!
     private let session: URLSession
     private let refreshBuffer: TimeInterval = 60
@@ -33,8 +33,14 @@ final class AuthTokenManager: ObservableObject {
         var request = URLRequest(url: tokenURL)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        let body = "grant_type=client_credentials&client_id=\(clientId)&client_secret=\(clientSecret)"
-        request.httpBody = Data(body.utf8)
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "grant_type",    value: "client_credentials"),
+            URLQueryItem(name: "client_id",     value: clientId),
+            URLQueryItem(name: "client_secret", value: clientSecret)
+        ]
+        let body = components.percentEncodedQuery ?? ""
+        request.httpBody = body.data(using: .utf8)
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.networkError }
