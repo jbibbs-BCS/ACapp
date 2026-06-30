@@ -11,8 +11,8 @@ final class NetworkMonitor: ObservableObject {
     private var offlineTask: Task<Void, Never>?
 
     init() {
-        #if targetEnvironment(simulator)
-        return  // NWPathMonitor is unreliable on simulator; stay connected
+        #if targetEnvironment(simulator) || os(macOS)
+        return  // NWPathMonitor unreliable on simulator; macOS sandbox blocks probes
         #endif
 
         monitor.pathUpdateHandler = { [weak self] path in
