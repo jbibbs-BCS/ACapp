@@ -29,8 +29,12 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
                                        resolvingAgainstBaseURL: false)!
         if !queryItems.isEmpty { components.queryItems = queryItems }
         var request = URLRequest(url: components.url!)
-        let token = try await authManager.validToken()
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        do {
+            let token = try await authManager.validToken()
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } catch is KeychainError {
+            throw APIError.unauthorized
+        }
         return request
     }
 
@@ -51,6 +55,8 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
             }
         } catch let error as APIError {
             throw error
+        } catch is KeychainError {
+            throw APIError.unauthorized
         } catch {
             throw APIError.networkError
         }
