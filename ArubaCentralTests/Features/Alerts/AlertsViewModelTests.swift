@@ -93,10 +93,10 @@ final class AlertsViewModelTests: XCTestCase {
         let firstPage  = (0..<100).map { makeAlert("a\($0)", cleared: false) }
         let secondPage = (100..<120).map { makeAlert("b\($0)", cleared: false) }
 
-        mockClient.alertsResult = .success(PaginatedResponse(items: firstPage, total: 120, offset: 0, limit: 100))
+        mockClient.alertsResult = .success(PaginatedResponse(items: firstPage, total: 120, next: "page2"))
         await sut.load()
 
-        mockClient.alertsResult = .success(PaginatedResponse(items: secondPage, total: 120, offset: 100, limit: 100))
+        mockClient.alertsResult = .success(PaginatedResponse(items: secondPage, total: 120, next: nil))
         await sut.loadNextPage()
 
         guard case .loaded(let alerts) = sut.alertsState else { return XCTFail() }

@@ -8,7 +8,7 @@ final class ClientsViewModel: ObservableObject {
 
     private let client: CentralAPIClientProtocol
     private let pageSize = 100
-    private var offset   = 0
+    private var nextCursor: String? = nil
     private var hasMore  = false
     private var isLoadingMore = false
 
@@ -29,9 +29,9 @@ final class ClientsViewModel: ObservableObject {
     func selectSite(_ site: String?) async {
         selectedSite = site
         guard let site else { clientsState = .idle; return }
-        offset = 0
+        nextCursor = nil
         clientsState = .loading
-        await fetchClients(site: site, search: nil, offset: 0, appending: false)
+        await fetchClients(site: site, search: nil, next: nil, appending: false)
     }
 
     func search(query: String) async {
@@ -40,9 +40,9 @@ final class ClientsViewModel: ObservableObject {
             else { clientsState = .idle }
             return
         }
-        offset = 0
+        nextCursor = nil
         clientsState = .loading
-        await fetchClients(site: selectedSite, search: query, offset: 0, appending: false)
+        await fetchClients(site: selectedSite, search: query, next: nil, appending: false)
     }
 
     func loadNextPage() async {
@@ -50,28 +50,28 @@ final class ClientsViewModel: ObservableObject {
         guard let site = selectedSite else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
-        await fetchClients(site: site, search: nil, offset: offset, appending: true)
+        await fetchClients(site: site, search: nil, next: nextCursor, appending: true)
     }
 
     func refresh() async {
         guard let site = selectedSite else { return }
-        offset = 0
-        await fetchClients(site: site, search: nil, offset: 0, appending: false)
+        nextCursor = nil
+        await fetchClients(site: site, search: nil, next: nil, appending: false)
     }
 
     // MARK: - Private
 
     private func fetchClientsForSite(_ site: String) async {
-        offset = 0
-        await fetchClients(site: site, search: nil, offset: 0, appending: false)
+        nextCursor = nil
+        await fetchClients(site: site, search: nil, next: nil, appending: false)
     }
 
-    private func fetchClients(site: String?, search: String?, offset: Int, appending: Bool) async {
+    private func fetchClients(site: String?, search: String?, next: String?, appending: Bool) async {
         do {
             let page = try await client.fetchClients(site: site, search: search,
-                                                     limit: pageSize, offset: offset)
-            self.offset = offset + page.items.count
-            self.hasMore = page.hasMore
+                                                     limit: pageSize, next: next)
+            self.nextCursor = page.next
+            self.hasMore    = page.hasMore
 
             if appending, case .loaded(let existing) = clientsState {
                 clientsState = .loaded(existing + page.items)

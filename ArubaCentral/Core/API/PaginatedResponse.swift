@@ -2,9 +2,8 @@
 
 struct PaginatedResponse<T: Codable>: Codable {
     let items: [T]
-    let total: Int
-    let offset: Int
-    let limit: Int
+    let total: Int?
+    let next: String?
 
-    var hasMore: Bool { total > offset + limit }
+    var hasMore: Bool { next != nil && !(next ?? "").isEmpty }
 }

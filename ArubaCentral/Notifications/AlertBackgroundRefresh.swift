@@ -49,7 +49,7 @@ final class AlertBackgroundRefresh {
     }
 
     func fetchUnacknowledgedAlerts() async throws -> [CentralAlert] {
-        let page = try await apiClient.fetchAlerts(limit: 100, offset: 0)
+        let page = try await apiClient.fetchAlerts(limit: 100, next: nil)
         return page.items.filter { !$0.isCleared }
     }
 

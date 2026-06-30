@@ -10,13 +10,13 @@ final class SiteDetailViewModel: ObservableObject {
     private let apiClient: CentralAPIClientProtocol
     private let pageSize = 100
 
-    private var apOffset          = 0
-    private var apHasMore         = false
-    private var isLoadingMoreAPs  = false
+    private var apNextCursor:       String? = nil
+    private var apHasMore:          Bool    = false
+    private var isLoadingMoreAPs:   Bool    = false
 
-    private var switchOffset          = 0
-    private var switchHasMore         = false
-    private var isLoadingMoreSwitches = false
+    private var switchNextCursor:       String? = nil
+    private var switchHasMore:          Bool    = false
+    private var isLoadingMoreSwitches:  Bool    = false
 
     init(site: Site, apiClient: CentralAPIClientProtocol) {
         self.site      = site
@@ -26,20 +26,20 @@ final class SiteDetailViewModel: ObservableObject {
     func load() async {
         apsState      = .loading
         switchesState = .loading
-        apOffset      = 0
-        switchOffset  = 0
+        apNextCursor      = nil
+        switchNextCursor  = nil
 
-        async let apsTask      = fetchAPs(offset: 0, appending: false)
-        async let switchesTask = fetchSwitches(offset: 0, appending: false)
+        async let apsTask      = fetchAPs(next: nil, appending: false)
+        async let switchesTask = fetchSwitches(next: nil, appending: false)
         await apsTask
         await switchesTask
     }
 
     func refresh() async {
-        apOffset     = 0
-        switchOffset = 0
-        async let apsTask      = fetchAPs(offset: 0, appending: false)
-        async let switchesTask = fetchSwitches(offset: 0, appending: false)
+        apNextCursor     = nil
+        switchNextCursor = nil
+        async let apsTask      = fetchAPs(next: nil, appending: false)
+        async let switchesTask = fetchSwitches(next: nil, appending: false)
         await apsTask
         await switchesTask
     }
@@ -48,24 +48,24 @@ final class SiteDetailViewModel: ObservableObject {
         guard apHasMore, !isLoadingMoreAPs else { return }
         isLoadingMoreAPs = true
         defer { isLoadingMoreAPs = false }
-        await fetchAPs(offset: apOffset, appending: true)
+        await fetchAPs(next: apNextCursor, appending: true)
     }
 
     func loadNextSwitchPage() async {
         guard switchHasMore, !isLoadingMoreSwitches else { return }
         isLoadingMoreSwitches = true
         defer { isLoadingMoreSwitches = false }
-        await fetchSwitches(offset: switchOffset, appending: true)
+        await fetchSwitches(next: switchNextCursor, appending: true)
     }
 
     // MARK: - Private fetch
 
-    private func fetchAPs(offset: Int, appending: Bool) async {
+    private func fetchAPs(next: String?, appending: Bool) async {
         do {
             let page = try await apiClient.fetchAPs(site: site.name, search: nil,
-                                                 limit: pageSize, offset: offset)
-            apOffset  = offset + page.items.count
-            apHasMore = page.hasMore
+                                                    limit: pageSize, next: next)
+            apNextCursor = page.next
+            apHasMore    = page.hasMore
 
             if appending, case .loaded(let existing) = apsState {
                 apsState = .loaded(existing + page.items)
@@ -79,12 +79,12 @@ final class SiteDetailViewModel: ObservableObject {
         }
     }
 
-    private func fetchSwitches(offset: Int, appending: Bool) async {
+    private func fetchSwitches(next: String?, appending: Bool) async {
         do {
             let page = try await apiClient.fetchSwitches(site: site.name, search: nil,
-                                                      limit: pageSize, offset: offset)
-            switchOffset  = offset + page.items.count
-            switchHasMore = page.hasMore
+                                                         limit: pageSize, next: next)
+            switchNextCursor = page.next
+            switchHasMore    = page.hasMore
 
             if appending, case .loaded(let existing) = switchesState {
                 switchesState = .loaded(existing + page.items)

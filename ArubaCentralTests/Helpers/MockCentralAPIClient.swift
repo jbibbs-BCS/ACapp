@@ -44,7 +44,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
         return try sitesResult.get()
     }
 
-    func fetchAPs(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<AccessPoint> {
+    func fetchAPs(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<AccessPoint> {
         fetchAPsCallCount += 1
         lastSiteFilter  = site
         lastSearchQuery = search
@@ -59,11 +59,11 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
         return try radiosResult.get()
     }
 
-    func fetchAPClients(serial: String, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralClient> {
+    func fetchAPClients(serial: String, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient> {
         return try apClientsResult.get()
     }
 
-    func fetchSwitches(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralSwitch> {
+    func fetchSwitches(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralSwitch> {
         lastSiteFilter  = site
         lastSearchQuery = search
         return try switchesResult.get()
@@ -81,7 +81,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
         return try vlansResult.get()
     }
 
-    func fetchClients(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralClient> {
+    func fetchClients(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient> {
         fetchClientsCallCount += 1
         lastSiteFilter  = site
         lastSearchQuery = search
@@ -92,7 +92,7 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
         return try clientDetailResult.get()
     }
 
-    func fetchAlerts(limit: Int, offset: Int) async throws -> PaginatedResponse<CentralAlert> {
+    func fetchAlerts(limit: Int, next: String?) async throws -> PaginatedResponse<CentralAlert> {
         fetchAlertsCallCount += 1
         return try alertsResult.get()
     }
@@ -121,6 +121,8 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
         if let error = testConnectionError { throw error }
     }
 
+    func updateBaseURL(_ url: URL) {}
+
     func searchDevices(query: String) async throws -> [SearchResult] {
         searchDevicesCallCount += 1
         lastSearchQuery = query
@@ -135,10 +137,10 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
 
 extension PaginatedResponse {
     static func empty() -> PaginatedResponse<T> {
-        PaginatedResponse(items: [], total: 0, offset: 0, limit: 100)
+        PaginatedResponse(items: [], total: 0, next: nil)
     }
 
     static func of(_ items: [T]) -> PaginatedResponse<T> {
-        PaginatedResponse(items: items, total: items.count, offset: 0, limit: 100)
+        PaginatedResponse(items: items, total: items.count, next: nil)
     }
 }

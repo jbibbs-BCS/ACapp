@@ -10,32 +10,33 @@ final class PreviewMockClient: CentralAPIClientProtocol {
         ]
     }
 
-    func fetchAPs(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<AccessPoint> {
-        PaginatedResponse(items: [], total: 0, offset: 0, limit: 100)
+    func fetchAPs(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<AccessPoint> {
+        PaginatedResponse(items: [], total: 0, next: nil)
     }
     func fetchAPDetail(serial: String) async throws -> AccessPoint { throw APIError.networkError }
     func fetchAPRadios(serial: String) async throws -> [Radio] { [] }
-    func fetchAPClients(serial: String, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralClient> {
-        PaginatedResponse(items: [], total: 0, offset: 0, limit: 100)
+    func fetchAPClients(serial: String, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient> {
+        PaginatedResponse(items: [], total: 0, next: nil)
     }
-    func fetchSwitches(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralSwitch> {
-        PaginatedResponse(items: [], total: 0, offset: 0, limit: 100)
+    func fetchSwitches(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralSwitch> {
+        PaginatedResponse(items: [], total: 0, next: nil)
     }
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch { throw APIError.networkError }
     func fetchSwitchInterfaces(serial: String) async throws -> [SwitchInterface] { [] }
     func fetchSwitchVLANs(serial: String) async throws -> [VLAN] { [] }
-    func fetchClients(site: String?, search: String?, limit: Int, offset: Int) async throws -> PaginatedResponse<CentralClient> {
-        PaginatedResponse(items: [], total: 0, offset: 0, limit: 100)
+    func fetchClients(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient> {
+        PaginatedResponse(items: [], total: 0, next: nil)
     }
     func fetchClientDetail(macAddress: String) async throws -> CentralClient { throw APIError.networkError }
-    func fetchAlerts(limit: Int, offset: Int) async throws -> PaginatedResponse<CentralAlert> {
-        PaginatedResponse(items: [], total: 0, offset: 0, limit: 100)
+    func fetchAlerts(limit: Int, next: String?) async throws -> PaginatedResponse<CentralAlert> {
+        PaginatedResponse(items: [], total: 0, next: nil)
     }
     func clearAlert(alertId: String) async throws {}
     func rebootAP(serial: String) async throws {}
     func blinkAPLED(serial: String) async throws {}
     func disconnectAllClientsFromAP(serial: String) async throws {}
     func testConnection() async throws {}
+    func updateBaseURL(_ url: URL) {}
     func searchDevices(query: String) async throws -> [SearchResult] { [] }
 }
 #endif

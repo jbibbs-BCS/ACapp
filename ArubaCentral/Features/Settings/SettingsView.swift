@@ -59,7 +59,13 @@ struct SettingsView: View {
 
             Picker("Region", selection: $viewModel.selectedRegion) {
                 ForEach(CentralRegion.all) { region in
-                    Text(region.label).tag(region)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(region.label)
+                        Text(region.baseURL.host ?? "")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .tag(region)
                 }
             }
 

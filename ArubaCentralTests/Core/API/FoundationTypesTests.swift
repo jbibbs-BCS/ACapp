@@ -63,20 +63,18 @@ final class FoundationTypesTests: XCTestCase {
         {
             "items": [1, 2, 3],
             "total": 100,
-            "offset": 0,
-            "limit": 3
+            "next": "cursor123"
         }
         """.data(using: .utf8)!
         let response = try JSONDecoder().decode(PaginatedResponse<Int>.self, from: json)
         XCTAssertEqual(response.items, [1, 2, 3])
         XCTAssertEqual(response.total, 100)
-        XCTAssertEqual(response.offset, 0)
-        XCTAssertEqual(response.limit, 3)
+        XCTAssertEqual(response.next, "cursor123")
     }
 
     func testPaginatedResponseHasMore() throws {
         let json = """
-        {"items": [], "total": 50, "offset": 0, "limit": 100}
+        {"items": [], "total": 50, "next": null}
         """.data(using: .utf8)!
         let response = try JSONDecoder().decode(PaginatedResponse<Int>.self, from: json)
         XCTAssertFalse(response.hasMore)
@@ -84,7 +82,7 @@ final class FoundationTypesTests: XCTestCase {
 
     func testPaginatedResponseHasMoreTrue() throws {
         let json = """
-        {"items": [], "total": 150, "offset": 0, "limit": 100}
+        {"items": [], "total": 150, "next": "nextpage"}
         """.data(using: .utf8)!
         let response = try JSONDecoder().decode(PaginatedResponse<Int>.self, from: json)
         XCTAssertTrue(response.hasMore)

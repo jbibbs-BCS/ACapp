@@ -81,11 +81,11 @@ final class SiteDetailViewModelTests: XCTestCase {
         let firstPage  = (0..<100).map { makeAP(serial: "AP\($0)") }
         let secondPage = (100..<150).map { makeAP(serial: "AP\($0)") }
 
-        mockClient.apsResult = .success(PaginatedResponse(items: firstPage, total: 150, offset: 0, limit: 100))
+        mockClient.apsResult = .success(PaginatedResponse(items: firstPage, total: 150, next: "page2"))
         mockClient.switchesResult = .success(.empty())
         await sut.load()
 
-        mockClient.apsResult = .success(PaginatedResponse(items: secondPage, total: 150, offset: 100, limit: 100))
+        mockClient.apsResult = .success(PaginatedResponse(items: secondPage, total: 150, next: nil))
         await sut.loadNextAPPage()
 
         guard case .loaded(let result) = sut.apsState else {
@@ -111,10 +111,10 @@ final class SiteDetailViewModelTests: XCTestCase {
         let secondPage = (100..<120).map { makeSW(serial: "SW\($0)") }
 
         mockClient.apsResult = .success(.empty())
-        mockClient.switchesResult = .success(PaginatedResponse(items: firstPage, total: 120, offset: 0, limit: 100))
+        mockClient.switchesResult = .success(PaginatedResponse(items: firstPage, total: 120, next: "page2"))
         await sut.load()
 
-        mockClient.switchesResult = .success(PaginatedResponse(items: secondPage, total: 120, offset: 100, limit: 100))
+        mockClient.switchesResult = .success(PaginatedResponse(items: secondPage, total: 120, next: nil))
         await sut.loadNextSwitchPage()
 
         guard case .loaded(let result) = sut.switchesState else {
@@ -125,7 +125,7 @@ final class SiteDetailViewModelTests: XCTestCase {
 
     // MARK: - refresh()
 
-    func testRefreshResetsOffsetAndReloads() async {
+    func testRefreshResetsCursorAndReloads() async {
         let firstBatch = [makeAP(serial: "OLD")]
         mockClient.apsResult = .success(PaginatedResponse.of(firstBatch))
         mockClient.switchesResult = .success(.empty())

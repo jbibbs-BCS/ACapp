@@ -93,9 +93,9 @@ final class DevicesViewModel: ObservableObject {
         devicesState = .loading
         do {
             async let apsPage     = apiClient.fetchAPs(site: selectedSite, search: nil,
-                                                       limit: pageSize, offset: 0)
+                                                       limit: pageSize, next: nil)
             async let switchesPage = apiClient.fetchSwitches(site: selectedSite, search: nil,
-                                                             limit: pageSize, offset: 0)
+                                                             limit: pageSize, next: nil)
             let (aps, switches) = try await (apsPage, switchesPage)
             allItems = aps.items.map { .ap($0) } + switches.items.map { .switch_($0) }
             applyFilter()
@@ -115,9 +115,9 @@ final class DevicesViewModel: ObservableObject {
         devicesState = .loading
         do {
             async let apsPage     = apiClient.fetchAPs(site: selectedSite, search: query,
-                                                       limit: pageSize, offset: 0)
+                                                       limit: pageSize, next: nil)
             async let switchesPage = apiClient.fetchSwitches(site: selectedSite, search: query,
-                                                             limit: pageSize, offset: 0)
+                                                             limit: pageSize, next: nil)
             let (aps, switches) = try await (apsPage, switchesPage)
             allItems = aps.items.map { .ap($0) } + switches.items.map { .switch_($0) }
             applyFilter()

@@ -55,6 +55,7 @@ final class SettingsViewModel: ObservableObject {
 
     func saveRegion() {
         UserDefaults.standard.set(selectedRegion.id, forKey: "selectedRegionId")
+        client.updateBaseURL(selectedRegion.baseURL)
     }
 
     // MARK: - Notification preferences

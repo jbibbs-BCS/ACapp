@@ -38,13 +38,16 @@ final class CentralAPIClientTests: XCTestCase {
 
     func testFetchSiteHealthDecodesResponse() async throws {
         MockURLProtocol.respondWith(statusCode: 200, json: """
-        [
-          {
-            "site_id": "s1", "site_name": "HQ",
-            "health_score": 90, "ap_count": 10,
-            "switch_count": 2, "client_count": 100
-          }
-        ]
+        {
+          "sites": [
+            {
+              "site_id": "s1", "site_name": "HQ",
+              "health_score": 90, "ap_count": 10,
+              "switch_count": 2, "client_count": 100
+            }
+          ],
+          "total": 1
+        }
         """)
         let sites = try await sut.fetchSiteHealth()
         XCTAssertEqual(sites.count, 1)
@@ -89,21 +92,19 @@ final class CentralAPIClientTests: XCTestCase {
 
     // MARK: - fetchAPs pagination
 
-    func testFetchAPsIncludesLimitAndOffset() async throws {
+    func testFetchAPsIncludesLimitAndNextCursor() async throws {
         var capturedRequest: URLRequest?
         MockURLProtocol.requestHandler = { request in
             capturedRequest = request
             let response = HTTPURLResponse(url: request.url!, statusCode: 200,
                                            httpVersion: nil, headerFields: nil)!
-            let json = """
-            {"items":[],"total":0,"offset":50,"limit":100}
-            """
+            let json = #"{"aps":[],"total":0,"next":null}"#
             return (response, Data(json.utf8))
         }
 
-        _ = try await sut.fetchAPs(site: nil, search: nil, limit: 100, offset: 50)
+        _ = try await sut.fetchAPs(site: nil, search: nil, limit: 100, next: "cursor50")
         let urlString = capturedRequest?.url?.absoluteString ?? ""
-        XCTAssertTrue(urlString.contains("offset=50"))
+        XCTAssertTrue(urlString.contains("next=cursor50"), "Expected next cursor in URL: \(urlString)")
         XCTAssertTrue(urlString.contains("limit=100"))
     }
 
@@ -113,12 +114,13 @@ final class CentralAPIClientTests: XCTestCase {
             capturedURL = request.url
             let response = HTTPURLResponse(url: request.url!, statusCode: 200,
                                            httpVersion: nil, headerFields: nil)!
-            return (response, Data(#"{"items":[],"total":0,"offset":0,"limit":100}"#.utf8))
+            return (response, Data(#"{"aps":[],"total":0,"next":null}"#.utf8))
         }
 
-        _ = try await sut.fetchAPs(site: "HQ Campus", search: nil, limit: 100, offset: 0)
+        _ = try await sut.fetchAPs(site: "HQ Campus", search: nil, limit: 100, next: nil)
         let urlString = capturedURL?.absoluteString ?? ""
-        XCTAssertTrue(urlString.contains("site_name=HQ%20Campus") || urlString.contains("site_name=HQ+Campus"))
+        XCTAssertTrue(urlString.contains("filter="), "Expected OData filter param in URL: \(urlString)")
+        XCTAssertTrue(urlString.lowercased().contains("hq"), "Expected site name in filter: \(urlString)")
     }
 
     // MARK: - 401 retry
@@ -142,7 +144,7 @@ final class CentralAPIClientTests: XCTestCase {
                 // Retry of original request
                 let r = HTTPURLResponse(url: request.url!, statusCode: 200,
                                         httpVersion: nil, headerFields: nil)!
-                let body = #"[{"site_id":"s1","site_name":"HQ","health_score":90,"ap_count":1,"switch_count":1,"client_count":1}]"#
+                let body = #"{"sites":[{"site_id":"s1","site_name":"HQ","health_score":90,"ap_count":1,"switch_count":1,"client_count":1}],"total":1}"#
                 return (r, Data(body.utf8))
             }
         }

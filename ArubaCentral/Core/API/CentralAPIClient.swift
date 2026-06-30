@@ -22,11 +22,22 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         }()
     }
 
+    // MARK: - Settings
+
+    func updateBaseURL(_ url: URL) {
+        baseURL = url
+    }
+
     // MARK: - Private helpers
 
+    // Uses string concatenation rather than appendingPathComponent so that
+    // multi-segment paths like /network-monitoring/v1/aps are not percent-encoded.
     private func buildRequest(path: String, queryItems: [URLQueryItem] = []) async throws -> URLRequest {
-        var components = URLComponents(url: baseURL.appendingPathComponent(path),
-                                       resolvingAgainstBaseURL: false)!
+        let base = baseURL.absoluteString.hasSuffix("/")
+            ? String(baseURL.absoluteString.dropLast())
+            : baseURL.absoluteString
+        let normalizedPath = path.hasPrefix("/") ? path : "/" + path
+        var components = URLComponents(string: base + normalizedPath)!
         if !queryItems.isEmpty { components.queryItems = queryItems }
         var request = URLRequest(url: components.url!)
         do {
@@ -80,7 +91,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         let _: EmptyResponse = try await perform(request)
     }
 
-    private func postRequest(path: String, body: Encodable) async throws -> URLRequest {
+    private func postRequest(path: String, body: some Encodable) async throws -> URLRequest {
         var request = try await buildRequest(path: path)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -88,151 +99,210 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         return request
     }
 
+    // MARK: - Private API response wrappers
+    // The New Central API wraps list results in resource-specific keys.
+    // These types handle the wire format; callers receive PaginatedResponse<T>.
+
+    private struct SiteHealthListResponse: Decodable {
+        let sites: [Site]
+        let total: Int?
+        let next: String?
+    }
+
+    private struct APListResponse: Decodable {
+        let aps: [AccessPoint]
+        let total: Int?
+        let next: String?
+    }
+
+    private struct SwitchListResponse: Decodable {
+        let switches: [CentralSwitch]
+        let total: Int?
+        let next: String?
+    }
+
+    private struct ClientListResponse: Decodable {
+        let clients: [CentralClient]
+        let total: Int?
+        let next: String?
+    }
+
+    private struct AlertListResponse: Decodable {
+        let alerts: [CentralAlert]
+        let total: Int?
+        let next: String?
+    }
+
+    private struct RadioListResponse: Decodable {
+        let radios: [Radio]
+        let total: Int?
+        let next: String?
+    }
+
     // MARK: - Sites
 
     func fetchSiteHealth() async throws -> [Site] {
-        let request = try await buildRequest(path: "/getsitehealthv1")
-        return try await perform(request)
+        let request = try await buildRequest(path: "/network-monitoring/v1/sites-health")
+        let response: SiteHealthListResponse = try await perform(request)
+        return response.sites
     }
 
     // MARK: - APs
 
     func fetchAPs(site: String? = nil, search: String? = nil,
-                  limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<AccessPoint> {
-        var items: [URLQueryItem] = [
-            .init(name: "limit",  value: "\(limit)"),
-            .init(name: "offset", value: "\(offset)")
-        ]
-        if let site   { items.append(.init(name: "site_name", value: site)) }
-        if let search { items.append(.init(name: "search",    value: search)) }
-        let request = try await buildRequest(path: "/accesspointsv1", queryItems: items)
-        return try await perform(request)
+                  limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<AccessPoint> {
+        var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
+        if let next { queryItems.append(.init(name: "next", value: next)) }
+        var filters: [String] = []
+        if let site   { filters.append("siteName eq '\(site)'") }
+        if let search { filters.append("contains(deviceName, '\(search)')") }
+        if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
+        let request = try await buildRequest(path: "/network-monitoring/v1/aps", queryItems: queryItems)
+        let response: APListResponse = try await perform(request)
+        return PaginatedResponse(items: response.aps, total: response.total, next: response.next)
     }
 
     func fetchAPDetail(serial: String) async throws -> AccessPoint {
-        let request = try await buildRequest(path: "/accesspointdetailsv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
+        let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(serial)")
         return try await perform(request)
     }
 
     func fetchAPRadios(serial: String) async throws -> [Radio] {
-        let request = try await buildRequest(path: "/accesspointradiolistv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
-        return try await perform(request)
+        let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(serial)/radios")
+        let response: RadioListResponse = try await perform(request)
+        return response.radios
     }
 
-    func fetchAPClients(serial: String, limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<CentralClient> {
-        let request = try await buildRequest(path: "/listunifiedclients", queryItems: [
-            .init(name: "associated_device", value: serial),
-            .init(name: "limit",             value: "\(limit)"),
-            .init(name: "offset",            value: "\(offset)")
-        ])
-        return try await perform(request)
+    func fetchAPClients(serial: String, limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<CentralClient> {
+        var queryItems: [URLQueryItem] = [
+            .init(name: "limit",  value: "\(limit)"),
+            .init(name: "filter", value: "associatedDevice eq '\(serial)'")
+        ]
+        if let next { queryItems.append(.init(name: "next", value: next)) }
+        let request = try await buildRequest(path: "/network-monitoring/v1/clients", queryItems: queryItems)
+        let response: ClientListResponse = try await perform(request)
+        return PaginatedResponse(items: response.clients, total: response.total, next: response.next)
     }
 
     // MARK: - Switches
 
     func fetchSwitches(site: String? = nil, search: String? = nil,
-                       limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<CentralSwitch> {
-        var items: [URLQueryItem] = [
-            .init(name: "limit",  value: "\(limit)"),
-            .init(name: "offset", value: "\(offset)")
-        ]
-        if let site   { items.append(.init(name: "site_name", value: site)) }
-        if let search { items.append(.init(name: "search",    value: search)) }
-        let request = try await buildRequest(path: "/switchesv1", queryItems: items)
-        return try await perform(request)
+                       limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<CentralSwitch> {
+        var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
+        if let next { queryItems.append(.init(name: "next", value: next)) }
+        var filters: [String] = []
+        if let site   { filters.append("siteName eq '\(site)'") }
+        if let search { filters.append("contains(deviceName, '\(search)')") }
+        if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches", queryItems: queryItems)
+        let response: SwitchListResponse = try await perform(request)
+        return PaginatedResponse(items: response.switches, total: response.total, next: response.next)
     }
 
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch {
-        let request = try await buildRequest(path: "/switchv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)")
         return try await perform(request)
     }
 
     func fetchSwitchInterfaces(serial: String) async throws -> [SwitchInterface] {
-        let request = try await buildRequest(path: "/listinterfacesv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)/interfaces")
         return try await perform(request)
     }
 
     func fetchSwitchVLANs(serial: String) async throws -> [VLAN] {
-        let request = try await buildRequest(path: "/listvlansv1",
-                                             queryItems: [.init(name: "serial", value: serial)])
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)/vlans")
         return try await perform(request)
     }
 
     // MARK: - Clients
 
     func fetchClients(site: String? = nil, search: String? = nil,
-                      limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<CentralClient> {
-        var items: [URLQueryItem] = [
-            .init(name: "limit",  value: "\(limit)"),
-            .init(name: "offset", value: "\(offset)")
-        ]
-        if let site   { items.append(.init(name: "site_name", value: site)) }
-        if let search { items.append(.init(name: "search",    value: search)) }
-        let request = try await buildRequest(path: "/listunifiedclients", queryItems: items)
-        return try await perform(request)
+                      limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<CentralClient> {
+        var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
+        if let next { queryItems.append(.init(name: "next", value: next)) }
+        var filters: [String] = []
+        if let site   { filters.append("siteName eq '\(site)'") }
+        if let search { filters.append("contains(name, '\(search)')") }
+        if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
+        let request = try await buildRequest(path: "/network-monitoring/v1/clients", queryItems: queryItems)
+        let response: ClientListResponse = try await perform(request)
+        return PaginatedResponse(items: response.clients, total: response.total, next: response.next)
     }
 
     func fetchClientDetail(macAddress: String) async throws -> CentralClient {
-        let request = try await buildRequest(path: "/getclientdetails",
-                                             queryItems: [.init(name: "macaddr", value: macAddress)])
+        let request = try await buildRequest(path: "/network-monitoring/v1/clients/\(macAddress)")
         return try await perform(request)
     }
 
     // MARK: - Alerts
 
-    func fetchAlerts(limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<CentralAlert> {
-        let request = try await buildRequest(path: "/getalertlistv1", queryItems: [
-            .init(name: "limit",  value: "\(limit)"),
-            .init(name: "offset", value: "\(offset)")
-        ])
-        return try await perform(request)
+    func fetchAlerts(limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<CentralAlert> {
+        var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
+        if let next { queryItems.append(.init(name: "next", value: next)) }
+        let request = try await buildRequest(path: "/network-notifications/v1/alerts", queryItems: queryItems)
+        let response: AlertListResponse = try await perform(request)
+        return PaginatedResponse(items: response.alerts, total: response.total, next: response.next)
     }
 
     func clearAlert(alertId: String) async throws {
-        let request = try await postRequest(path: "/clearalerts",
-                                            body: ["alert_id": alertId])
+        let request = try await postRequest(path: "/network-notifications/v1/alerts/clear",
+                                            body: ClearAlertsBody(alertKeys: [alertId]))
         try await performVoid(request)
     }
 
     // MARK: - Actions
+    // Reboot is confirmed at /network-troubleshooting/v1alpha1/.
+    // Locate and disconnect-clients follow the same prefix by pattern;
+    // verify against a live environment if they return 404.
 
     func rebootAP(serial: String) async throws {
-        let request = try await postRequest(path: "/rebootapv1", body: ["serial": serial])
+        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(serial)/reboot",
+                                            body: EmptyBody())
         try await performVoid(request)
     }
 
     func blinkAPLED(serial: String) async throws {
-        let request = try await postRequest(path: "/locateapv1", body: ["serial": serial])
+        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(serial)/locate",
+                                            body: EmptyBody())
         try await performVoid(request)
     }
 
     func disconnectAllClientsFromAP(serial: String) async throws {
-        let request = try await postRequest(path: "/disconnectallusersapv1", body: ["serial": serial])
+        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(serial)/disconnect-clients",
+                                            body: EmptyBody())
         try await performVoid(request)
     }
 
-    // OPEN ITEM: bounce port endpoint not confirmed in New Central MRT docs
-    // func bounceSwitchPort(serial: String, port: String) async throws { ... }
-
-    // OPEN ITEM: disconnect individual client endpoint not confirmed in New Central MRT docs
-    // func disconnectClient(mac: String) async throws { ... }
-
-    // MARK: - Settings
+    // MARK: - Connection test
+    // Performs a raw HTTP check against a known endpoint so a decodingError
+    // in the response body never masks a successful connection.
 
     func testConnection() async throws {
-        let _ = try await fetchSiteHealth()
+        let request = try await buildRequest(path: "/network-monitoring/v1/sites-health",
+                                             queryItems: [.init(name: "limit", value: "1")])
+        do {
+            let (_, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw APIError.networkError }
+            switch http.statusCode {
+            case 200...299: return
+            case 401: throw APIError.unauthorized
+            case 403: throw APIError.forbidden
+            case 429: throw APIError.rateLimited
+            default:  throw APIError.serverError(http.statusCode)
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.networkError
+        }
     }
 
     // MARK: - Search
 
     func searchDevices(query: String) async throws -> [SearchResult] {
-        async let apsPage      = fetchAPs(site: nil, search: query, limit: 50, offset: 0)
-        async let switchesPage = fetchSwitches(site: nil, search: query, limit: 50, offset: 0)
-        async let clientsPage  = fetchClients(site: nil, search: query, limit: 50, offset: 0)
+        async let apsPage      = fetchAPs(site: nil, search: query, limit: 50, next: nil)
+        async let switchesPage = fetchSwitches(site: nil, search: query, limit: 50, next: nil)
+        async let clientsPage  = fetchClients(site: nil, search: query, limit: 50, next: nil)
         let (aps, switches, clients) = try await (apsPage, switchesPage, clientsPage)
         return aps.items.map { .ap($0) }
              + switches.items.map { .switch_($0) }
@@ -242,3 +312,6 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
 
 private struct EmptyResponse: Codable {}
 private struct EmptyBody: Encodable {}
+private struct ClearAlertsBody: Encodable {
+    let alertKeys: [String]
+}

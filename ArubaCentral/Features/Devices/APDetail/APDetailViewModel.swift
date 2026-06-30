@@ -25,7 +25,7 @@ final class APDetailViewModel: ObservableObject {
         do {
             async let detail  = client.fetchAPDetail(serial: ap.serial)
             async let radios  = client.fetchAPRadios(serial: ap.serial)
-            async let clients = client.fetchAPClients(serial: ap.serial, limit: 100, offset: 0)
+            async let clients = client.fetchAPClients(serial: ap.serial, limit: 100, next: nil)
             let (d, r, c) = try await (detail, radios, clients)
             detailState  = .loaded(d)
             radiosState  = .loaded(r)

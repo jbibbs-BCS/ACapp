@@ -84,10 +84,10 @@ final class ClientsViewModelTests: XCTestCase {
         let firstPage  = (0..<100).map { makeClient("aa:\($0)") }
         let secondPage = (100..<130).map { makeClient("bb:\($0)") }
 
-        mockClient.clientsResult = .success(PaginatedResponse(items: firstPage, total: 130, offset: 0, limit: 100))
+        mockClient.clientsResult = .success(PaginatedResponse(items: firstPage, total: 130, next: "page2"))
         await sut.selectSite("HQ")
 
-        mockClient.clientsResult = .success(PaginatedResponse(items: secondPage, total: 130, offset: 100, limit: 100))
+        mockClient.clientsResult = .success(PaginatedResponse(items: secondPage, total: 130, next: nil))
         await sut.loadNextPage()
 
         guard case .loaded(let items) = sut.clientsState else { return XCTFail() }

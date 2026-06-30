@@ -9,7 +9,7 @@ final class AlertsViewModel: ObservableObject {
 
     private let client: CentralAPIClientProtocol
     private let pageSize = 100
-    private var offset   = 0
+    private var nextCursor: String? = nil
     private var hasMore  = false
     private var isLoadingMore = false
 
@@ -24,20 +24,20 @@ final class AlertsViewModel: ObservableObject {
 
     func load() async {
         alertsState = .loading
-        offset = 0
-        await fetchAlerts(offset: 0, appending: false)
+        nextCursor = nil
+        await fetchAlerts(next: nil, appending: false)
     }
 
     func refresh() async {
-        offset = 0
-        await fetchAlerts(offset: 0, appending: false)
+        nextCursor = nil
+        await fetchAlerts(next: nil, appending: false)
     }
 
     func loadNextPage() async {
         guard hasMore, !isLoadingMore else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
-        await fetchAlerts(offset: offset, appending: true)
+        await fetchAlerts(next: nextCursor, appending: true)
     }
 
     func acknowledge(alertId: String) async {
@@ -68,11 +68,11 @@ final class AlertsViewModel: ObservableObject {
         selectedAlertId = alertId
     }
 
-    private func fetchAlerts(offset: Int, appending: Bool) async {
+    private func fetchAlerts(next: String?, appending: Bool) async {
         do {
-            let page = try await client.fetchAlerts(limit: pageSize, offset: offset)
-            self.offset  = offset + page.items.count
-            self.hasMore = page.hasMore
+            let page = try await client.fetchAlerts(limit: pageSize, next: next)
+            self.nextCursor = page.next
+            self.hasMore    = page.hasMore
 
             if appending, case .loaded(let existing) = alertsState {
                 alertsState = .loaded(existing + page.items)
