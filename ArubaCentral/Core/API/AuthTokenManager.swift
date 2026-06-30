@@ -42,7 +42,13 @@ final class AuthTokenManager: ObservableObject {
         let body = components.percentEncodedQuery ?? ""
         request.httpBody = body.data(using: .utf8)
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError
+        }
         guard let http = response as? HTTPURLResponse else { throw APIError.networkError }
         guard http.statusCode == 200 else { throw APIError.unauthorized }
 

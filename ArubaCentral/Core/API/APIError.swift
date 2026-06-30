@@ -12,7 +12,9 @@ enum APIError: Error, Equatable {
 
     var userMessage: String {
         switch self {
-        case .unauthorized, .sessionExpired:
+        case .unauthorized:
+            return "Authentication failed — verify your Client ID and Secret in Settings."
+        case .sessionExpired:
             return "Session expired — please re-authenticate in Settings."
         case .forbidden:
             return "Your account doesn't have permission to view this."
