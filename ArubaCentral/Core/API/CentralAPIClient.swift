@@ -91,7 +91,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     // MARK: - Sites
 
     func fetchSiteHealth() async throws -> [Site] {
-        let request = try await buildRequest(path: "/sitesv1")
+        let request = try await buildRequest(path: "/getsitehealthv1")
         return try await perform(request)
     }
 
@@ -110,7 +110,8 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchAPDetail(serial: String) async throws -> AccessPoint {
-        let request = try await buildRequest(path: "/accesspointsv1/\(serial)")
+        let request = try await buildRequest(path: "/accesspointdetailsv1",
+                                             queryItems: [.init(name: "serial", value: serial)])
         return try await perform(request)
     }
 
@@ -121,7 +122,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchAPClients(serial: String, limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<CentralClient> {
-        let request = try await buildRequest(path: "/clientsv1", queryItems: [
+        let request = try await buildRequest(path: "/listunifiedclients", queryItems: [
             .init(name: "associated_device", value: serial),
             .init(name: "limit",             value: "\(limit)"),
             .init(name: "offset",            value: "\(offset)")
@@ -144,7 +145,8 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch {
-        let request = try await buildRequest(path: "/switchesv1/\(serial)")
+        let request = try await buildRequest(path: "/switchv1",
+                                             queryItems: [.init(name: "serial", value: serial)])
         return try await perform(request)
     }
 
@@ -170,13 +172,13 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         ]
         if let site   { items.append(.init(name: "site_name", value: site)) }
         if let search { items.append(.init(name: "search",    value: search)) }
-        let request = try await buildRequest(path: "/clientsv1", queryItems: items)
+        let request = try await buildRequest(path: "/listunifiedclients", queryItems: items)
         return try await perform(request)
     }
 
     func fetchClientDetail(macAddress: String) async throws -> CentralClient {
-        let mac = macAddress.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? macAddress
-        let request = try await buildRequest(path: "/clientsv1/\(mac)")
+        let request = try await buildRequest(path: "/getclientdetails",
+                                             queryItems: [.init(name: "macaddr", value: macAddress)])
         return try await perform(request)
     }
 
@@ -204,12 +206,12 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func blinkAPLED(serial: String) async throws {
-        let request = try await postRequest(path: "/accesspointsv1/\(serial)/action/led_flash", body: EmptyBody())
+        let request = try await postRequest(path: "/locateapv1", body: ["serial": serial])
         try await performVoid(request)
     }
 
     func disconnectAllClientsFromAP(serial: String) async throws {
-        let request = try await postRequest(path: "/accesspointsv1/\(serial)/action/disconnect_clients", body: EmptyBody())
+        let request = try await postRequest(path: "/disconnectallusersapv1", body: ["serial": serial])
         try await performVoid(request)
     }
 
