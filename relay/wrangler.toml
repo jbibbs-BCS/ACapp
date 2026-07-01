@@ -1,0 +1,12 @@
+name = "aruba-central-relay"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[[kv_namespaces]]
+binding = "DEVICE_TOKENS"
+id = "PLACEHOLDER"
+preview_id = "PLACEHOLDER"
+
+[vars]
+APNS_BUNDLE_ID = "Bibbs.ArubaCentral"
+APNS_ENVIRONMENT = "development"
