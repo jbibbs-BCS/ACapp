@@ -20,8 +20,6 @@ final class SettingsViewModel: ObservableObject {
     @Published var selectedRegion: CentralRegion = CentralRegion.defaultRegion
     @Published var notificationPrefs = NotificationPreferences.load()
     @Published private(set) var connectionTestResult: ConnectionTestResult = .idle
-    @Published var credentialsSaved = false
-
     private let keychain = KeychainManager()
     private let client: CentralAPIClientProtocol
 
@@ -43,7 +41,6 @@ final class SettingsViewModel: ObservableObject {
         guard !clientSecret.isEmpty else { throw SettingsError.emptyClientSecret }
         try keychain.save(clientId,     for: .clientId)
         try keychain.save(clientSecret, for: .clientSecret)
-        credentialsSaved = true
     }
 
     // MARK: - Region
