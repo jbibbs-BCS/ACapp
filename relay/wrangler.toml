@@ -4,8 +4,8 @@ compatibility_date = "2024-11-01"
 
 [[kv_namespaces]]
 binding = "DEVICE_TOKENS"
-id = "PLACEHOLDER"
-preview_id = "PLACEHOLDER"
+id = "2f6cbcafd95542358bd3e5f9b5294792"
+preview_id = "eec4fdea4fa7410a82e10e303da5dc8a"
 
 [vars]
 APNS_BUNDLE_ID = "Bibbs.ArubaCentral"
