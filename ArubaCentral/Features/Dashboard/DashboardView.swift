@@ -197,11 +197,7 @@ struct SiteCardView: View {
                 .padding(.vertical, 2)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(site.name), health \(site.healthPct) percent, " +
-            "\(site.goodDeviceCount) of \(site.deviceCount) devices healthy, " +
-            "\(site.clientCount) clients, \(site.alertCount) alerts"
-        )
+        .accessibilityLabel("\(site.name), health \(site.healthPct) percent, \(site.goodDeviceCount) of \(site.deviceCount) devices healthy, \(site.clientCount) clients, \(site.alertCount) alerts")
     }
 
     private func statCell(value: String, label: String, icon: String, valueColor: Color) -> some View {
