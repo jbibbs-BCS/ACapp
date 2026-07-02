@@ -20,6 +20,34 @@ struct ArubaCentralApp: App {
         _apiClient       = StateObject(wrappedValue: client)
         _alertsViewModel = StateObject(wrappedValue: AlertsViewModel(apiClient: client))
         AlertBackgroundRefresh.register()
+        configureNavigationBarAppearance()
+        configureTabBarAppearance()
+    }
+
+    // MARK: - Global Appearance
+
+    private func configureNavigationBarAppearance() {
+        let navColor   = UIColor(Color.navBackground)
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor           = navColor
+        appearance.titleTextAttributes       = [.foregroundColor: UIColor.white]
+        appearance.largeTitleTextAttributes  = [.foregroundColor: UIColor.white]
+        UINavigationBar.appearance().standardAppearance   = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance    = appearance
+        UINavigationBar.appearance().tintColor            = UIColor(Color.brandOrange)
+    }
+
+    private func configureTabBarAppearance() {
+        let tabColor   = UIColor(Color.navBackground)
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = tabColor
+        UITabBar.appearance().standardAppearance      = appearance
+        UITabBar.appearance().scrollEdgeAppearance    = appearance
+        UITabBar.appearance().tintColor               = UIColor(Color.brandOrange)
+        UITabBar.appearance().unselectedItemTintColor = UIColor.white.withAlphaComponent(0.55)
     }
 
     var body: some Scene {
