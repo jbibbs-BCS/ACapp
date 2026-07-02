@@ -5,6 +5,7 @@ import Combine
 final class SiteDetailViewModel: ObservableObject {
     @Published private(set) var apsState: LoadState<[AccessPoint]>        = .idle
     @Published private(set) var switchesState: LoadState<[CentralSwitch]> = .idle
+    @Published private(set) var stackMembersMap: [String: [StackMember]]  = [:]
 
     let site: Site
     private let apiClient: CentralAPIClientProtocol
@@ -86,10 +87,21 @@ final class SiteDetailViewModel: ObservableObject {
             switchNextCursor = page.next
             switchHasMore    = page.hasMore
 
+            let switches: [CentralSwitch]
             if appending, case .loaded(let existing) = switchesState {
-                switchesState = .loaded(existing + page.items)
+                switches = existing + page.items
             } else {
-                switchesState = .loaded(page.items)
+                switches = page.items
+            }
+            switchesState = .loaded(switches)
+
+            // Fetch stack members for any stacked switches on this page (best-effort)
+            let allSerials = Set(switches.map { $0.serial })
+            for sw in page.items where sw.stackId != nil {
+                guard let stackId = sw.stackId, stackMembersMap[stackId] == nil else { continue }
+                if let members = try? await apiClient.fetchStackMembers(serial: stackId) {
+                    stackMembersMap[stackId] = members.filter { !allSerials.contains($0.serial) }
+                }
             }
         } catch let error as APIError {
             if !appending { switchesState = .error(error) }

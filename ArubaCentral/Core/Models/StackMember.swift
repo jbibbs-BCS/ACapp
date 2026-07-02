@@ -25,9 +25,10 @@ struct StackMember: Codable, Identifiable, Equatable {
             }.first
         }
 
-        serial = str("serial", "serialNumber", "memberSerial", "id") ?? UUID().uuidString
+        // "id" in the NCA response is an EUI-64 MAC, not a human-readable serial — exclude it.
+        serial = str("serial", "serialNumber", "memberSerial", "name", "deviceName") ?? "Unknown"
         model  = str("model", "memberModel", "productName")
-        role   = str("role", "memberRole", "memberType", "type")
+        role   = str("role", "memberRole", "memberType", "type", "memberGroupType")
 
         // Decode status via DeviceStatus (handles "Up"/"Online"/"Down"/"Offline")
         if let raw = str("status", "operStatus", "memberStatus", "state") {

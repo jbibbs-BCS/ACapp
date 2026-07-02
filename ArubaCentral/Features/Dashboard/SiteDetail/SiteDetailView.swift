@@ -107,6 +107,15 @@ struct SiteDetailView: View {
                                 Task { await viewModel.loadNextSwitchPage() }
                             }
                         }
+
+                        if let stackId = sw.stackId,
+                           let members = viewModel.stackMembersMap[stackId] {
+                            ForEach(members) { member in
+                                SiteStackMemberRow(member: member)
+                                    .listRowBackground(Color.cardBackground)
+                                    .padding(.leading, 16)
+                            }
+                        }
                     }
                 }
 
@@ -124,6 +133,32 @@ struct SiteDetailView: View {
                 .foregroundStyle(Color.brandSectionHeader)
                 .padding(.top, 4)
         }
+    }
+}
+
+// MARK: - Stack member row (site detail)
+
+private struct SiteStackMemberRow: View {
+    let member: StackMember
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "cpu")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(member.serial)
+                    .font(.subheadline)
+                if let model = member.model {
+                    Text(model)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            DeviceStatusBadge(status: member.status)
+        }
+        .padding(.vertical, 2)
     }
 }
 
