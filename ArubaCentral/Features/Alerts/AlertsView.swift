@@ -77,42 +77,54 @@ struct AlertRowView: View {
     let alert: CentralAlert
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Unacknowledged left border indicator
+        HStack(spacing: 0) {
+            // 4pt severity bar
             Rectangle()
                 .fill(alert.isCleared ? Color.clear : alert.severity.color)
                 .frame(width: 4)
                 .clipShape(Capsule())
                 .accessibilityHidden(true)
 
-            Image(systemName: alert.severity.systemImage)
-                .foregroundStyle(alert.severity.color)
-                .frame(width: 24)
-                .accessibilityHidden(true)
+            HStack(spacing: 10) {
+                Image(systemName: alert.severity.systemImage)
+                    .foregroundStyle(alert.isCleared ? Color.secondary : alert.severity.color)
+                    .frame(width: 24)
+                    .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(alert.name)
-                    .font(.headline)
-                    .foregroundStyle(alert.isCleared ? .secondary : .primary)
-                HStack(spacing: 8) {
-                    if let site = alert.siteName {
-                        Text(site).font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(alert.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(alert.isCleared ? .secondary : .primary)
+                        if !alert.isCleared {
+                            AlertSeverityBadgeView(severity: alert.severity)
+                        }
                     }
-                    Text(alert.createdAt.formatted(.relative(presentation: .named)))
-                        .font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        if let site = alert.siteName {
+                            Text(site).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Text(alert.createdAt.formatted(.relative(presentation: .named)))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                if alert.isCleared {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.healthGood)
+                        .imageScale(.small)
+                        .accessibilityLabel("Acknowledged")
                 }
             }
-
-            Spacer()
-
-            if alert.isCleared {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .imageScale(.small)
-                    .accessibilityLabel("Acknowledged")
-            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
         }
-        .padding(.vertical, 3)
+        .listRowBackground(
+            alert.isCleared ? Color.clear : alert.severity.color.opacity(0.04)
+        )
+        .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }

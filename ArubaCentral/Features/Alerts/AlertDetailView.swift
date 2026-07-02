@@ -14,11 +14,10 @@ struct AlertDetailView: View {
                         .foregroundStyle(alert.severity.color)
                         .font(.title2)
                         .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(alert.name).font(.headline)
-                        Text(alert.severity.rawValue)
-                            .font(.caption)
-                            .foregroundStyle(alert.severity.color)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(alert.name)
+                            .font(.headline)
+                        AlertSeverityBadgeView(severity: alert.severity)
                     }
                 }
                 .padding(.vertical, 4)
@@ -29,7 +28,11 @@ struct AlertDetailView: View {
                     Text(desc).font(.body).foregroundStyle(.secondary)
                 }
                 if let device = alert.deviceSerial {
-                    LabeledContent("Device", value: device)
+                    LabeledContent("Device") {
+                        Text(device)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(Color.brandOrange)
+                    }
                 }
                 if let site = alert.siteName {
                     LabeledContent("Site", value: site)
@@ -40,13 +43,21 @@ struct AlertDetailView: View {
             Section("Status") {
                 if alert.isCleared {
                     Label("Acknowledged", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.healthGood)
                 } else {
                     Button {
                         showingConfirm = true
                     } label: {
-                        Label("Acknowledge Alert", systemImage: "checkmark.circle")
+                        Text("Acknowledge Alert")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .foregroundStyle(.white)
+                            .background(Color.brandOrange, in: Capsule())
                     }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
             }
         }
