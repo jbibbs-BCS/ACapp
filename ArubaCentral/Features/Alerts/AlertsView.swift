@@ -3,6 +3,7 @@ import SwiftUI
 struct AlertsView: View {
     @ObservedObject var viewModel: AlertsViewModel
     @State private var navigationPath = NavigationPath()
+    @State private var severityFilter: AlertSeverity? = nil
 
     init(viewModel: AlertsViewModel) {
         self.viewModel = viewModel
@@ -46,40 +47,82 @@ struct AlertsView: View {
 
     @ViewBuilder
     private func alertList(_ alerts: [CentralAlert]) -> some View {
-        if alerts.isEmpty {
-            VStack(spacing: 16) {
-                Spacer()
-                Image(systemName: "bell.slash")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                Text("No Alerts")
-                    .font(.headline)
-                Text("Your network has no alerts.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-        } else {
-            List(alerts) { alert in
-                NavigationLink(value: alert) {
-                    AlertRowView(alert: alert)
+        let displayed = severityFilter.map { s in alerts.filter { $0.severity == s } } ?? alerts
+        VStack(spacing: 0) {
+            filterBar
+            if displayed.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "bell.slash")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    Text("No \(severityFilter?.rawValue ?? "") Alerts")
+                        .font(.headline)
+                    Spacer()
                 }
-                .listRowBackground(
-                    ZStack {
-                        Color.cardBackground
-                        if !alert.isCleared { alert.severity.color.opacity(0.06) }
+                .frame(maxWidth: .infinity)
+            } else {
+                List(displayed) { alert in
+                    NavigationLink(value: alert) {
+                        AlertRowView(alert: alert)
                     }
-                )
-                .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
-                .onAppear {
-                    if alert.id == alerts.last?.id { Task { await viewModel.loadNextPage() } }
+                    .listRowBackground(
+                        ZStack {
+                            Color.cardBackground
+                            if !alert.isCleared { alert.severity.color.opacity(0.06) }
+                        }
+                    )
+                    .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .onAppear {
+                        if alert.id == alerts.last?.id { Task { await viewModel.loadNextPage() } }
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(Color.appBackground)
+                .refreshable { await viewModel.refresh() }
+            }
+        }
+    }
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                SeverityFilterChip(label: "All", color: .brandOrange,
+                                   isSelected: severityFilter == nil) {
+                    severityFilter = nil
+                }
+                ForEach([AlertSeverity.critical, .major, .minor, .info], id: \.self) { sev in
+                    SeverityFilterChip(label: sev.rawValue, color: sev.color,
+                                       isSelected: severityFilter == sev) {
+                        severityFilter = severityFilter == sev ? nil : sev
+                    }
                 }
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Color.appBackground)
-            .refreshable { await viewModel.refresh() }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
+        .background(Color.appBackground)
+    }
+}
+
+private struct SeverityFilterChip: View {
+    let label: String
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? .white : color)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? color : color.opacity(0.12), in: Capsule())
+                .overlay(Capsule().strokeBorder(color.opacity(isSelected ? 0 : 0.4), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 
