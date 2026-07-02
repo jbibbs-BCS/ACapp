@@ -111,24 +111,6 @@ final class AlertsViewModelTests: XCTestCase {
         XCTAssertEqual(mockClient.fetchAlertsCallCount, callsBefore)
     }
 
-    // MARK: - navigateTo
-
-    func testNavigateToAlertIdSelectsAlert() async {
-        let alert = makeAlert("target-id", cleared: false)
-        mockClient.alertsResult = .success(.of([alert]))
-        await sut.load()
-        sut.navigateTo(alertId: "target-id")
-        XCTAssertEqual(sut.selectedAlertId, "target-id")
-    }
-
-    func testNavigateToUnknownAlertIdLoadsFirst() async {
-        mockClient.alertsResult = .success(.of([makeAlert("a1", cleared: false)]))
-        await sut.load()
-        sut.navigateTo(alertId: "unknown-id")
-        // Should load but not crash
-        XCTAssertEqual(sut.selectedAlertId, "unknown-id")
-    }
-
     // MARK: - Helpers
 
     private func makeAlert(_ id: String, cleared: Bool) -> CentralAlert {

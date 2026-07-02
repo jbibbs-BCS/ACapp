@@ -25,18 +25,6 @@ struct AlertsView: View {
             }
         }
         .task { await viewModel.load() }
-        .onReceive(NotificationCenter.default.publisher(for: .didReceiveAlertNotification)) { note in
-            if let alertId = note.userInfo?["alert_id"] as? String {
-                viewModel.navigateTo(alertId: alertId)
-            }
-        }
-        .onChangeCompat(of: viewModel.selectedAlertId) { alertId in
-            guard let alertId,
-                  case .loaded(let alerts) = viewModel.alertsState,
-                  let alert = alerts.first(where: { $0.id == alertId }) else { return }
-            navigationPath.append(alert)
-            viewModel.selectedAlertId = nil
-        }
         .alert("Action Failed", isPresented: Binding(
             get: { viewModel.actionError != nil },
             set: { if !$0 { viewModel.actionError = nil } }
@@ -184,6 +172,3 @@ struct AlertRowView: View {
     }
 }
 
-extension Notification.Name {
-    static let didReceiveAlertNotification = Notification.Name("didReceiveAlertNotification")
-}

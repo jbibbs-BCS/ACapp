@@ -5,7 +5,6 @@ import Combine
 final class AlertsViewModel: ObservableObject {
     @Published private(set) var alertsState: LoadState<[CentralAlert]> = .idle
     @Published var actionError: APIError? = nil
-    @Published var selectedAlertId: String? = nil
 
     private let client: CentralAPIClientProtocol
     private let pageSize = 100
@@ -62,10 +61,6 @@ final class AlertsViewModel: ObservableObject {
         } catch {
             actionError = .networkError
         }
-    }
-
-    func navigateTo(alertId: String) {
-        selectedAlertId = alertId
     }
 
     private func fetchAlerts(next: String?, appending: Bool) async {
