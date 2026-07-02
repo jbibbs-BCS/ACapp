@@ -23,10 +23,10 @@ import SwiftUI
 extension AlertSeverity {
     var color: Color {
         switch self {
-        case .critical: return .red
-        case .major:    return .orange
-        case .minor:    return .yellow
-        case .info:     return .blue
+        case .critical: return .healthCritical
+        case .major:    return .healthWarning   // amber #F59E0B — distinct from brandOrange
+        case .minor:    return Color(red: 0.231, green: 0.510, blue: 0.965) // #3B82F6
+        case .info:     return Color(.secondaryLabel)
         }
     }
 
