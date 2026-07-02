@@ -20,6 +20,8 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .background(Color.appBackground)
         .navigationTitle("Settings")
+        .toolbarBackground(Color.navBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .alert("Error", isPresented: Binding(
             get: { credentialsError != nil },
             set: { if !$0 { credentialsError = nil } }
