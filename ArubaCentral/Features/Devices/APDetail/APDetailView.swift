@@ -21,6 +21,7 @@ struct APDetailView: View {
                 }
             }
         }
+        .background(Color.appBackground)
         .navigationTitle(viewModel.ap.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { actionMenu }
@@ -61,7 +62,10 @@ struct APDetailView: View {
                       content: { radios in
                           List(radios) { radio in
                               RadioRowView(radio: radio)
-                          }.listStyle(.insetGrouped)
+                          }
+                          .listStyle(.insetGrouped)
+                          .scrollContentBackground(.hidden)
+                          .background(Color.appBackground)
                       },
                       retry: { Task { await viewModel.load() } })
     }
@@ -99,7 +103,10 @@ struct APDetailView: View {
         } else {
             List(clients) { client in
                 APClientRowView(client: client)
-            }.listStyle(.insetGrouped)
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
         }
     }
 
@@ -144,6 +151,8 @@ private struct APOverviewContent: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
     }
 
     @ViewBuilder

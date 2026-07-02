@@ -68,6 +68,8 @@ struct AlertsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .refreshable { await viewModel.refresh() }
         }
     }

@@ -17,21 +17,22 @@ final class SwitchDetailViewModel: ObservableObject {
     }
 
     func load() async {
-        detailState = .loading
+        // Overview uses the CentralSwitch passed from the list — no per-switch detail endpoint exists
+        detailState = .loaded(sw)
         portsState  = .loading
         vlansState  = .loading
         do {
-            async let detail     = client.fetchSwitchDetail(serial: sw.serial)
             async let interfaces = client.fetchSwitchInterfaces(serial: sw.serial)
             async let vlans      = client.fetchSwitchVLANs(serial: sw.serial)
-            let (d, i, v) = try await (detail, interfaces, vlans)
-            detailState = .loaded(d)
-            portsState  = .loaded(i)
-            vlansState  = .loaded(v)
+            let (i, v) = try await (interfaces, vlans)
+            portsState = .loaded(i)
+            vlansState = .loaded(v)
         } catch let error as APIError {
-            detailState = .error(error)
+            portsState = .error(error)
+            vlansState = .error(error)
         } catch {
-            detailState = .error(.networkError)
+            portsState = .error(.networkError)
+            vlansState = .error(.networkError)
         }
     }
 

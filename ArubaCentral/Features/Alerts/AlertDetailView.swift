@@ -62,6 +62,8 @@ struct AlertDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle("Alert Detail")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Acknowledge this alert?",

@@ -12,6 +12,7 @@ struct SwitchDetailView: View {
         VStack(spacing: 0) {
             BrandedTabPicker(tabs: ["Overview", "Ports", "VLANs"], selection: $selectedTab)
                 .padding(.vertical, 8)
+                .background(Color.appBackground)
 
             Group {
                 switch selectedTab {
@@ -21,6 +22,7 @@ struct SwitchDetailView: View {
                 }
             }
         }
+        .background(Color.appBackground)
         .navigationTitle(viewModel.sw.name)
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
@@ -52,6 +54,8 @@ struct SwitchDetailView: View {
                       content: { vlans in
                           List(vlans) { vlan in VLANRowView(vlan: vlan) }
                               .listStyle(.insetGrouped)
+                              .scrollContentBackground(.hidden)
+                              .background(Color.appBackground)
                       },
                       retry: { Task { await viewModel.load() } })
     }
@@ -75,7 +79,10 @@ private struct SwitchOverviewContent: View {
                 if let uptime = sw.uptime { LabeledContent("Uptime", value: uptimeString(uptime)) }
                 if let site = sw.siteName { LabeledContent("Site",   value: site) }
             }
-        }.listStyle(.insetGrouped)
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
     }
 
     private func uptimeString(_ s: Int) -> String {
