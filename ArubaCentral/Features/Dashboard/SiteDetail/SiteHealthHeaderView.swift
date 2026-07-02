@@ -36,7 +36,7 @@ struct SiteHealthHeaderView: View {
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 0) {
                 Text("\(site.healthPct)%")
-                    .font(.title.bold())
+                    .font(.callout.bold())
                     .monospacedDigit()
                     .foregroundStyle(healthColor)
                 Text("Health")

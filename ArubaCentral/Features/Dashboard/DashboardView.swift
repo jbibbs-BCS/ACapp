@@ -161,24 +161,23 @@ struct SiteCardView: View {
                 // Stat row
                 HStack(spacing: 0) {
                     statCell(
-                        value: "\(site.goodDeviceCount)/\(site.deviceCount)",
+                        value: Text("\(site.goodDeviceCount)").foregroundStyle(Color.healthGood)
+                             + Text("/\(site.deviceCount)").foregroundStyle(Color.primary),
                         label: "DEVICES",
-                        icon: "network",
-                        valueColor: .primary
+                        icon: "network"
                     )
                     Rectangle().fill(Color.cardBorder).frame(width: 0.5, height: 40)
                     statCell(
-                        value: "\(site.clientCount)",
+                        value: Text("\(site.clientCount)").foregroundStyle(Color.primary),
                         label: "CLIENTS",
-                        icon: "person.2.fill",
-                        valueColor: .primary
+                        icon: "person.2.fill"
                     )
                     Rectangle().fill(Color.cardBorder).frame(width: 0.5, height: 40)
                     statCell(
-                        value: "\(site.alertCount)",
+                        value: Text("\(site.alertCount)")
+                            .foregroundStyle(site.alertCount == 0 ? Color.healthGood : Color.healthCritical),
                         label: "ALERTS",
-                        icon: "bell.fill",
-                        valueColor: site.alertCount == 0 ? .healthGood : .healthCritical
+                        icon: "bell.fill"
                     )
                 }
                 .padding(.vertical, 10)
@@ -204,16 +203,15 @@ struct SiteCardView: View {
         .accessibilityLabel("\(site.name), health \(site.healthPct) percent, \(site.goodDeviceCount) of \(site.deviceCount) devices healthy, \(site.clientCount) clients, \(site.alertCount) alerts")
     }
 
-    private func statCell(value: String, label: String, icon: String, valueColor: Color) -> some View {
+    private func statCell(value: Text, label: String, icon: String) -> some View {
         VStack(spacing: 3) {
             Image(systemName: icon)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            Text(value)
+            value
                 .font(.title3.bold())
                 .monospacedDigit()
-                .foregroundStyle(valueColor)
             Text(label)
                 .font(.caption2.weight(.medium))
                 .tracking(0.5)
