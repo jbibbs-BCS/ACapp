@@ -3,41 +3,35 @@ import SwiftUI
 struct DashboardView: View {
     private let apiClient: CentralAPIClientProtocol
     @StateObject private var viewModel: DashboardViewModel
-    @StateObject private var searchVM: GlobalSearchViewModel
+    let onAlertsTapped: () -> Void
 
-    init(client: CentralAPIClientProtocol) {
+    init(client: CentralAPIClientProtocol, onAlertsTapped: @escaping () -> Void = {}) {
         self.apiClient = client
+        self.onAlertsTapped = onAlertsTapped
         _viewModel = StateObject(wrappedValue: DashboardViewModel(apiClient: client))
-        _searchVM  = StateObject(wrappedValue: GlobalSearchViewModel(apiClient: client))
     }
 
     var body: some View {
         LoadStateView(
             state: viewModel.sitesState,
-            content: { sites in siteList(sites) },
+            content: { sites in siteScrollView(sites) },
             retry: { Task { await viewModel.load() } }
         )
+        .background(Color.appBackground)
         .navigationTitle("Dashboard")
-        .searchable(text: $searchVM.query, prompt: "Search by hostname, IP, or MAC")
-        .overlay(alignment: .top) {
-            if !searchVM.query.isEmpty {
-                SearchResultsOverlay(viewModel: searchVM) { result in
-                    handleSearchSelection(result)
-                }
-                .padding(.top, 8)
-            }
+        .navigationDestination(for: Site.self) { site in
+            SiteDetailView(site: site, apiClient: apiClient)
         }
         .task { await viewModel.load() }
-        .refreshable { await viewModel.refresh() }
     }
 
     @ViewBuilder
-    private func siteList(_ sites: [Site]) -> some View {
+    private func siteScrollView(_ sites: [Site]) -> some View {
         if sites.isEmpty {
             VStack(spacing: 16) {
                 Image(systemName: "building.2")
                     .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.brandOrange.opacity(0.6))
                 Text("No Sites")
                     .font(.headline)
                 Text("No sites found in your Central account.")
@@ -48,57 +42,184 @@ struct DashboardView: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List(sites) { site in
-                NavigationLink(value: site) {
-                    SiteRowView(site: site)
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    if viewModel.alertCounts.hasAny {
+                        AlertSummaryCardView(counts: viewModel.alertCounts, onTap: onAlertsTapped)
+                    }
+                    ForEach(sites) { site in
+                        NavigationLink(value: site) {
+                            SiteCardView(site: site)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .listStyle(.insetGrouped)
-            .navigationDestination(for: Site.self) { site in
-                SiteDetailView(site: site, apiClient: apiClient)
-            }
-            .navigationDestination(for: AccessPoint.self) { ap in
-                APDetailView(ap: ap, apiClient: apiClient)
-            }
-            .navigationDestination(for: CentralSwitch.self) { sw in
-                SwitchDetailView(sw: sw, apiClient: apiClient)
-            }
+            .background(Color.appBackground)
+            .refreshable { await viewModel.refresh() }
         }
-    }
-
-    private func handleSearchSelection(_ result: SearchResult) {
-        searchVM.query = ""
     }
 }
 
-struct SiteRowView: View {
-    let site: Site
+// MARK: - Alert Summary Card
+
+struct AlertSummaryCardView: View {
+    let counts: AlertSummaryCounts
+    let onTap: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 12) {
-            HealthBadgeView(level: site.healthLevel)
-                .frame(width: 28, height: 28)
+        Button(action: onTap) {
+            HStack(spacing: 0) {
+                // 4pt leading bar
+                Rectangle()
+                    .fill(Color.brandOrange)
+                    .frame(width: 4)
+                    .clipShape(Capsule())
+                    .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(site.name)
-                    .font(.headline)
-                HStack(spacing: 16) {
-                    Label("\(site.apCount) APs",         systemImage: "antenna.radiowaves.left.and.right")
-                    Label("\(site.switchCount) SWs",     systemImage: "network")
-                    Label("\(site.clientCount) Clients",  systemImage: "person.2")
+                HStack {
+                    Image(systemName: "bell.fill")
+                        .foregroundStyle(Color.brandOrange)
+                        .font(.title3)
+                        .padding(.leading, 10)
+                    Text("Active Alerts")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(counts.total)")
+                        .font(.title2.bold())
+                        .monospacedDigit()
+                        .foregroundStyle(Color.brandOrange)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.trailing, 14)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .padding(.vertical, 14)
             }
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(Color.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.cardBorder, lineWidth: 0.5)
+            )
+            .shadow(
+                color: colorScheme == .light ? .black.opacity(0.06) : .clear,
+                radius: 8, x: 0, y: 2
+            )
         }
-        .padding(.vertical, 4)
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Site Card
+
+struct SiteCardView: View {
+    let site: Site
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var statusColor: Color { Color.healthColor(for: site.healthLevel) }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // Card body
+            VStack(alignment: .leading, spacing: 0) {
+                // Header row
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(site.name)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        HealthBadgePillView(size: .standard, level: site.healthLevel)
+                    }
+                    Spacer()
+                    Text("\(site.healthPct)%")
+                        .font(.title2.bold())
+                        .monospacedDigit()
+                        .foregroundStyle(statusColor)
+                }
+                .padding(.leading, 18) // extra leading for accent bar
+                .padding(.trailing, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 12)
+
+                // Divider
+                Rectangle()
+                    .fill(Color.cardBorder)
+                    .frame(height: 0.5)
+
+                // Stat row
+                HStack(spacing: 0) {
+                    statCell(
+                        value: "\(site.goodDeviceCount)/\(site.deviceCount)",
+                        label: "DEVICES",
+                        icon: "network",
+                        valueColor: .primary
+                    )
+                    Rectangle().fill(Color.cardBorder).frame(width: 0.5, height: 40)
+                    statCell(
+                        value: "\(site.clientCount)",
+                        label: "CLIENTS",
+                        icon: "person.2.fill",
+                        valueColor: .primary
+                    )
+                    Rectangle().fill(Color.cardBorder).frame(width: 0.5, height: 40)
+                    statCell(
+                        value: "\(site.alertCount)",
+                        label: "ALERTS",
+                        icon: "bell.fill",
+                        valueColor: site.alertCount == 0 ? .healthGood : .healthCritical
+                    )
+                }
+                .padding(.vertical, 10)
+            }
+            .background(Color.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.cardBorder, lineWidth: 0.5)
+            )
+            .shadow(
+                color: colorScheme == .light ? .black.opacity(0.06) : .clear,
+                radius: 8, x: 0, y: 2
+            )
+
+            // 3pt leading health-color accent bar
+            RoundedRectangle(cornerRadius: 2)
+                .fill(statusColor)
+                .frame(width: 3)
+                .padding(.vertical, 2)
+        }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(
+            "\(site.name), health \(site.healthPct) percent, " +
+            "\(site.goodDeviceCount) of \(site.deviceCount) devices healthy, " +
+            "\(site.clientCount) clients, \(site.alertCount) alerts"
+        )
     }
 
-    private var accessibilityLabel: String {
-        "\(site.name), health \(site.healthLevel.accessibilityLabel), " +
-        "\(site.apCount) APs, \(site.switchCount) switches, \(site.clientCount) clients"
+    private func statCell(value: String, label: String, icon: String, valueColor: Color) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(value)
+                .font(.title3.bold())
+                .monospacedDigit()
+                .foregroundStyle(valueColor)
+            Text(label)
+                .font(.caption2.weight(.medium))
+                .tracking(0.5)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
