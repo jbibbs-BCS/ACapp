@@ -17,6 +17,7 @@ struct DevicesView: View {
             content: { items in deviceList(items) },
             retry: { Task { await viewModel.load() } }
         )
+        .background(Color.appBackground)
         .navigationTitle("Devices")
         .searchable(text: $searchVM.query, prompt: "Name, IP, or MAC")
         .overlay(alignment: .top) {
@@ -72,6 +73,8 @@ struct DevicesView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
         }
     }
 

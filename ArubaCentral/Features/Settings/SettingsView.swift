@@ -17,6 +17,8 @@ struct SettingsView: View {
             appearanceSection
             aboutSection
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle("Settings")
         .alert("Error", isPresented: Binding(
             get: { credentialsError != nil },

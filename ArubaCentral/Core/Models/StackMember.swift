@@ -25,8 +25,20 @@ struct StackMember: Codable, Identifiable, Equatable {
             }.first
         }
 
-        // "id" in the NCA response is an EUI-64 MAC, not a human-readable serial — exclude it.
-        serial = str("serial", "serialNumber", "memberSerial", "name", "deviceName") ?? "Unknown"
+        func formatHexIdentifier(_ raw: String) -> String {
+            let hex = raw.lowercased().filter(\.isHexDigit)
+            guard hex.count == 12 || hex.count == 16 else { return raw }
+            var result = ""
+            for (i, ch) in hex.enumerated() {
+                if i > 0 && i % 2 == 0 { result += ":" }
+                result.append(ch)
+            }
+            return result
+        }
+
+        let rawSerial = str("serial", "serialNumber", "memberSerial", "name", "deviceName",
+                            "mac", "macAddress", "memberMac", "id")
+        serial = rawSerial.map { formatHexIdentifier($0) } ?? "Unknown"
         model  = str("model", "memberModel", "productName")
         role   = str("role", "memberRole", "memberType", "type", "memberGroupType")
 
