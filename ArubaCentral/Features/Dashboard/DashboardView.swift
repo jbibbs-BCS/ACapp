@@ -21,6 +21,7 @@ struct DashboardView: View {
         .navigationTitle("Dashboard")
         .toolbarBackground(Color.navBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .navigationDestination(for: Site.self) { site in
             SiteDetailView(site: site, apiClient: apiClient)
         }

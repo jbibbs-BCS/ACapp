@@ -21,6 +21,7 @@ struct DevicesView: View {
         .navigationTitle("Devices")
         .toolbarBackground(Color.navBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .searchable(text: $searchVM.query, prompt: "Name, IP, or MAC")
         .overlay(alignment: .top) {
             if !searchVM.query.isEmpty {
