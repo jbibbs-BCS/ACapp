@@ -30,21 +30,21 @@ struct SiteDetailView: View {
     private var siteHealthSection: some View {
         Section {
             HStack(spacing: 12) {
-                StatCardView(title: "APs",
-                             value: "\(viewModel.site.apCount)",
-                             systemImage: "antenna.radiowaves.left.and.right")
-                StatCardView(title: "Switches",
-                             value: "\(viewModel.site.switchCount)",
+                StatCardView(title: "Devices",
+                             value: "\(viewModel.site.deviceCount)",
                              systemImage: "network")
                 StatCardView(title: "Clients",
                              value: "\(viewModel.site.clientCount)",
                              systemImage: "person.2")
+                StatCardView(title: "Alerts",
+                             value: "\(viewModel.site.alertCount)",
+                             systemImage: "bell")
             }
             .listRowInsets(.init(top: 12, leading: 16, bottom: 12, trailing: 16))
             .listRowBackground(Color.clear)
         } header: {
             HStack {
-                HealthBadgeView(level: viewModel.site.healthLevel)
+                HealthBadgePillView(size: .compact, level: viewModel.site.healthLevel)
                 Text("Site Health")
             }
         }
@@ -182,8 +182,8 @@ private extension CentralAPIClient {
 #Preview {
     NavigationStack {
         SiteDetailView(
-            site: Site(id: "s1", name: "HQ Campus", healthScore: 90,
-                       apCount: 24, switchCount: 4, clientCount: 310),
+            site: Site(id: "s1", name: "HQ Campus", healthPct: 90,
+                       deviceCount: 28, clientCount: 310),
             apiClient: PreviewMockClient()
         )
     }
