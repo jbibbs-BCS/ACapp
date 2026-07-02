@@ -64,6 +64,13 @@ struct AlertsView: View {
                 NavigationLink(value: alert) {
                     AlertRowView(alert: alert)
                 }
+                .listRowBackground(
+                    ZStack {
+                        Color.cardBackground
+                        if !alert.isCleared { alert.severity.color.opacity(0.06) }
+                    }
+                )
+                .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
                 .onAppear {
                     if alert.id == alerts.last?.id { Task { await viewModel.loadNextPage() } }
                 }
@@ -124,13 +131,6 @@ struct AlertRowView: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 12)
         }
-        .listRowBackground(
-            ZStack {
-                Color.cardBackground
-                if !alert.isCleared { alert.severity.color.opacity(0.06) }
-            }
-        )
-        .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
