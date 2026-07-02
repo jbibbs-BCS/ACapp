@@ -10,14 +10,8 @@ struct APDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Tab", selection: $selectedTab) {
-                Text("Overview").tag(0)
-                Text("Radios").tag(1)
-                Text("Clients").tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
+            BrandedTabPicker(tabs: ["Overview", "Radios", "Clients"], selection: $selectedTab)
+                .padding(.vertical, 8)
 
             Group {
                 switch selectedTab {
@@ -75,12 +69,38 @@ struct APDetailView: View {
     @ViewBuilder
     private var clientsTab: some View {
         LoadStateView(state: viewModel.clientsState,
-                      content: { clients in
-                          List(clients) { client in
-                              APClientRowView(client: client)
-                          }.listStyle(.insetGrouped)
-                      },
+                      content: clientsContent,
                       retry: { Task { await viewModel.load() } })
+    }
+
+    @ViewBuilder
+    private func clientsContent(_ clients: [CentralClient]) -> some View {
+        if clients.isEmpty {
+            VStack(spacing: 12) {
+                Spacer()
+                Image(systemName: "person.slash")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                if let count = viewModel.ap.clientCount, count > 0 {
+                    Text("\(count) client(s) connected")
+                        .font(.headline)
+                    Text("Client details are not available for this AP.\nThe API does not support per-device filtering.")
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                } else {
+                    Text("No clients connected")
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+        } else {
+            List(clients) { client in
+                APClientRowView(client: client)
+            }.listStyle(.insetGrouped)
+        }
     }
 
     @ToolbarContentBuilder
@@ -107,11 +127,11 @@ private struct APOverviewContent: View {
     var body: some View {
         List {
             Section("Device Info") {
-                LabeledContent("Model",    value: ap.model)
-                LabeledContent("Serial",   value: ap.serial)
-                if let fw = ap.firmware  { LabeledContent("Firmware", value: fw) }
-                if let ip = ap.ipAddress { LabeledContent("IP",       value: ip) }
-                LabeledContent("MAC", value: ap.macAddress)
+                LabeledContent("Model", value: ap.model)
+                monoRow("Serial",   ap.serial)
+                if let fw = ap.firmware  { monoRow("Firmware", fw) }
+                if let ip = ap.ipAddress { monoRow("IP",       ip) }
+                monoRow("MAC", ap.macAddress)
             }
             Section("Status") {
                 LabeledContent("Status", value: ap.status == .up ? "Online" : "Offline")
@@ -124,6 +144,15 @@ private struct APOverviewContent: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    @ViewBuilder
+    private func monoRow(_ label: String, _ value: String) -> some View {
+        LabeledContent(label) {
+            Text(value)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
     }
 
     private func uptimeString(_ seconds: Int) -> String {

@@ -7,19 +7,20 @@ enum PortDiagramLayout {
 }
 
 extension PortStatus {
+    // Semantic string identifier used in tests
     var color: String {
         switch self {
-        case .up:       return "green"
-        case .down:     return "gray"
-        case .disabled: return "orange"
+        case .up:       return "up"
+        case .down:     return "down"
+        case .disabled: return "disabled"
         }
     }
 
     var swiftUIColor: Color {
         switch self {
-        case .up:       return .green
-        case .down:     return Color(.systemGray4)
-        case .disabled: return .orange
+        case .up:       return .healthGood
+        case .down:     return Color(red: 0.420, green: 0.447, blue: 0.502) // #6B7280
+        case .disabled: return .healthWarning
         }
     }
 }
@@ -33,17 +34,24 @@ struct PortDiagramView: View {
     private var columns: Int { PortDiagramLayout.columns(for: ports.count) }
 
     var body: some View {
-        ScrollView([.horizontal, .vertical]) {
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
-                spacing: 6
-            ) {
-                ForEach(ports) { port in
-                    PortCell(port: port)
-                        .onTapGesture { selectedPort = port }
+        VStack(alignment: .leading, spacing: 0) {
+            PortLegendView()
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
+            ScrollView([.horizontal, .vertical]) {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
+                    spacing: 6
+                ) {
+                    ForEach(ports) { port in
+                        PortCell(port: port)
+                            .onTapGesture { selectedPort = port }
+                    }
                 }
+                .padding(16)
             }
-            .padding(16)
         }
         .sheet(item: $selectedPort) { port in
             PortDetailSheet(port: port, onBounce: {
@@ -55,15 +63,40 @@ struct PortDiagramView: View {
     }
 }
 
+// MARK: - Legend
+
+private struct PortLegendView: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            legendPill(color: .healthGood,   label: "Up")
+            legendPill(color: Color(red: 0.420, green: 0.447, blue: 0.502), label: "Down")
+            legendPill(color: .healthWarning, label: "Disabled")
+        }
+    }
+
+    private func legendPill(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Port cell
+
 private struct PortCell: View {
     let port: SwitchInterface
 
     var body: some View {
         RoundedRectangle(cornerRadius: 6)
-            .fill(port.status.swiftUIColor.opacity(0.25))
+            .fill(port.status.swiftUIColor.opacity(0.2))
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(port.status.swiftUIColor, lineWidth: 2)
+                    .strokeBorder(port.status.swiftUIColor, lineWidth: 1.5)
             )
             .overlay(
                 Text(shortPortId(port.portId))
@@ -79,6 +112,8 @@ private struct PortCell: View {
     }
 }
 
+// MARK: - Port detail sheet
+
 private struct PortDetailSheet: View {
     let port: SwitchInterface
     let onBounce: () -> Void
@@ -89,11 +124,21 @@ private struct PortDetailSheet: View {
         NavigationStack {
             List {
                 Section("Port Info") {
-                    LabeledContent("Port ID", value: port.portId)
-                    LabeledContent("Status",  value: port.status.rawValue)
-                    if let speed = port.speed { LabeledContent("Speed", value: speed) }
-                    if let vlan  = port.vlan  { LabeledContent("VLAN",  value: "\(vlan)") }
-                    if let dev   = port.connectedDevice { LabeledContent("Device", value: dev) }
+                    LabeledContent("Port ID") {
+                        Text(port.portId)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    LabeledContent("Status", value: port.status.rawValue)
+                    if let speed = port.speed { LabeledContent("Speed", value: formatSpeed(speed)) }
+                    if let vlan = port.vlan {
+                        LabeledContent("VLAN") {
+                            Text("\(vlan)")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if let dev = port.connectedDevice { LabeledContent("Device", value: dev) }
                 }
                 if let tx = port.txBytes, let rx = port.rxBytes {
                     Section("Traffic") {
@@ -126,6 +171,12 @@ private struct PortDetailSheet: View {
         }
     }
 
+    private func formatSpeed(_ bps: Int) -> String {
+        let gbps = Double(bps) / 1_000_000_000
+        if gbps >= 1 { return String(format: "%.0f Gbps", gbps) }
+        return String(format: "%.0f Mbps", Double(bps) / 1_000_000)
+    }
+
     private func formatBytes(_ bytes: Int) -> String {
         let kb = Double(bytes) / 1024
         if kb < 1024 { return String(format: "%.1f KB", kb) }
@@ -139,8 +190,8 @@ private struct PortDetailSheet: View {
     PortDiagramView(
         ports: (1...24).map { i in
             SwitchInterface(portId: "1/1/\(i)",
-                            status: i % 5 == 0 ? .down : .up,
-                            speed: "1G", vlan: 10,
+                            status: i % 5 == 0 ? .down : (i % 7 == 0 ? .disabled : .up),
+                            speed: 1_000_000_000, vlan: 10,
                             connectedDevice: nil,
                             txBytes: 1_000_000, rxBytes: 500_000)
         },

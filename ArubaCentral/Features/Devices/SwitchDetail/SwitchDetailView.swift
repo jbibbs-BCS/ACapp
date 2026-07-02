@@ -10,14 +10,8 @@ struct SwitchDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Tab", selection: $selectedTab) {
-                Text("Overview").tag(0)
-                Text("Ports").tag(1)
-                Text("VLANs").tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
+            BrandedTabPicker(tabs: ["Overview", "Ports", "VLANs"], selection: $selectedTab)
+                .padding(.vertical, 8)
 
             Group {
                 switch selectedTab {

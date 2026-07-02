@@ -4,15 +4,15 @@ import XCTest
 final class PortDiagramViewTests: XCTestCase {
 
     func testPortColorUp() {
-        XCTAssertEqual(PortStatus.up.color,       "green")
+        XCTAssertEqual(PortStatus.up.color,       "up")
     }
 
     func testPortColorDown() {
-        XCTAssertEqual(PortStatus.down.color,     "gray")
+        XCTAssertEqual(PortStatus.down.color,     "down")
     }
 
     func testPortColorDisabled() {
-        XCTAssertEqual(PortStatus.disabled.color, "orange")
+        XCTAssertEqual(PortStatus.disabled.color, "disabled")
     }
 
     func testPortGridColumns8Port() {
