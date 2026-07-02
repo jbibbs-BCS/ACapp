@@ -40,7 +40,7 @@ struct PortDiagramView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
 
-            ScrollView([.horizontal, .vertical]) {
+            ScrollView(.horizontal, showsIndicators: false) {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
                     spacing: 6
@@ -53,6 +53,7 @@ struct PortDiagramView: View {
                 .padding(16)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .sheet(item: $selectedPort) { port in
             PortDetailSheet(port: port, onBounce: {
                 onBounce(port)

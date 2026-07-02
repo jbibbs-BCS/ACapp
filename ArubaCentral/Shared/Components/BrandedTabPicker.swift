@@ -27,7 +27,7 @@ struct BrandedTabPicker: View {
             }
         }
         .padding(3)
-        .background(Color.brandNavy.opacity(0.07), in: Capsule())
+        .background(Color(UIColor.secondarySystemFill), in: Capsule())
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .accessibilityElement(children: .contain)
