@@ -14,11 +14,20 @@ struct SiteDetailView: View {
 
     var body: some View {
         List {
-            siteHealthSection
+            // Health header
+            Section {
+                SiteHealthHeaderView(site: viewModel.site)
+                    .listRowInsets(.init(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    .listRowBackground(Color.appBackground)
+                    .listRowSeparator(.hidden)
+            }
+
             apSection
             switchSection
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle(viewModel.site.name)
         .navigationBarTitleDisplayMode(.large)
         .task { await viewModel.load() }
@@ -27,29 +36,6 @@ struct SiteDetailView: View {
 
     // MARK: - Sections
 
-    private var siteHealthSection: some View {
-        Section {
-            HStack(spacing: 12) {
-                StatCardView(title: "Devices",
-                             value: "\(viewModel.site.deviceCount)",
-                             systemImage: "network")
-                StatCardView(title: "Clients",
-                             value: "\(viewModel.site.clientCount)",
-                             systemImage: "person.2")
-                StatCardView(title: "Alerts",
-                             value: "\(viewModel.site.alertCount)",
-                             systemImage: "bell")
-            }
-            .listRowInsets(.init(top: 12, leading: 16, bottom: 12, trailing: 16))
-            .listRowBackground(Color.clear)
-        } header: {
-            HStack {
-                HealthBadgePillView(size: .compact, level: viewModel.site.healthLevel)
-                Text("Site Health")
-            }
-        }
-    }
-
     @ViewBuilder
     private var apSection: some View {
         Section {
@@ -57,18 +43,20 @@ struct SiteDetailView: View {
             case .idle, .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
+                    .listRowBackground(Color.appBackground)
 
             case .loaded(let aps):
                 if aps.isEmpty {
                     Text("No APs at this site")
                         .foregroundStyle(.secondary)
+                        .listRowBackground(Color.appBackground)
                 } else {
                     ForEach(aps) { ap in
                         NavigationLink(value: ap) {
-                            DeviceRowView(name: ap.name, model: ap.model,
-                                         status: ap.status, uptime: ap.uptime)
+                            BrandedDeviceRowView(name: ap.name, model: ap.model,
+                                                 status: ap.status, uptime: ap.uptime)
                         }
+                        .listRowBackground(Color.cardBackground)
                         .onAppear {
                             if ap.id == aps.last?.id {
                                 Task { await viewModel.loadNextAPPage() }
@@ -81,9 +69,15 @@ struct SiteDetailView: View {
                 Text(error.userMessage)
                     .foregroundStyle(.red)
                     .font(.caption)
+                    .listRowBackground(Color.appBackground)
             }
         } header: {
             Text("Access Points")
+                .font(.caption.weight(.semibold))
+                .tracking(1.0)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.brandNavy.opacity(0.7))
+                .padding(.top, 8)
         }
     }
 
@@ -94,18 +88,20 @@ struct SiteDetailView: View {
             case .idle, .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
+                    .listRowBackground(Color.appBackground)
 
             case .loaded(let switches):
                 if switches.isEmpty {
                     Text("No switches at this site")
                         .foregroundStyle(.secondary)
+                        .listRowBackground(Color.appBackground)
                 } else {
                     ForEach(switches) { sw in
                         NavigationLink(value: sw) {
-                            DeviceRowView(name: sw.name, model: sw.model,
-                                         status: sw.status, uptime: sw.uptime)
+                            BrandedDeviceRowView(name: sw.name, model: sw.model,
+                                                 status: sw.status, uptime: sw.uptime)
                         }
+                        .listRowBackground(Color.cardBackground)
                         .onAppear {
                             if sw.id == switches.last?.id {
                                 Task { await viewModel.loadNextSwitchPage() }
@@ -118,14 +114,59 @@ struct SiteDetailView: View {
                 Text(error.userMessage)
                     .foregroundStyle(.red)
                     .font(.caption)
+                    .listRowBackground(Color.appBackground)
             }
         } header: {
             Text("Switches")
+                .font(.caption.weight(.semibold))
+                .tracking(1.0)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.brandNavy.opacity(0.7))
+                .padding(.top, 4)
         }
     }
 }
 
-// MARK: - Shared device row
+// MARK: - Branded device row
+
+private struct BrandedDeviceRowView: View {
+    let name: String
+    let model: String
+    let status: DeviceStatus
+    let uptime: Int?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name)
+                    .font(.headline)
+                Text(model)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                if let uptime {
+                    Text("Up \(uptimeString(uptime))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            DeviceStatusBadge(status: status)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(name), \(model), \(status == .up ? "online" : "offline")")
+    }
+
+    private func uptimeString(_ seconds: Int) -> String {
+        let days = seconds / 86400; let hours = (seconds % 86400) / 3600
+        if days > 0 { return "\(days)d \(hours)h" }
+        let minutes = (seconds % 3600) / 60
+        if hours > 0 { return "\(hours)h \(minutes)m" }
+        return "\(minutes)m"
+    }
+}
+
+// MARK: - DeviceRowView kept for DevicesView compatibility
 
 struct DeviceRowView: View {
     let name: String
@@ -135,17 +176,12 @@ struct DeviceRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(status == .up ? Color.green : Color.red)
-                .frame(width: 10, height: 10)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(name)
                     .font(.headline)
                 HStack(spacing: 8) {
                     Text(model)
-                        .font(.caption)
+                        .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                     if let uptime {
                         Text("Up \(uptimeString(uptime))")
@@ -154,15 +190,16 @@ struct DeviceRowView: View {
                     }
                 }
             }
+            Spacer()
+            DeviceStatusBadge(status: status)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(name), \(model), \(status == .up ? "online" : "offline")")
     }
 
     private func uptimeString(_ seconds: Int) -> String {
-        let days    = seconds / 86400
-        let hours   = (seconds % 86400) / 3600
+        let days = seconds / 86400; let hours = (seconds % 86400) / 3600
         if days > 0 { return "\(days)d \(hours)h" }
         let minutes = (seconds % 3600) / 60
         if hours > 0 { return "\(hours)h \(minutes)m" }
