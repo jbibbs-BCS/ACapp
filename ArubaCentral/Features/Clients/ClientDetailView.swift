@@ -4,8 +4,7 @@ import Combine
 @MainActor
 final class ClientDetailViewModel: ObservableObject {
     @Published private(set) var detailState: LoadState<CentralClient> = .idle
-    @Published var actionError: APIError? = nil
-    @Published var showingDisconnectConfirm = false
+    @Published private(set) var connectedDeviceName: String? = nil
 
     let client: CentralClient
     private let apiClient: CentralAPIClientProtocol
@@ -13,32 +12,18 @@ final class ClientDetailViewModel: ObservableObject {
     init(client: CentralClient, apiClient: CentralAPIClientProtocol) {
         self.client    = client
         self.apiClient = apiClient
+        self.detailState = .loaded(client)
     }
 
     func load() async {
-        detailState = .loading
-        do {
-            let detail = try await apiClient.fetchClientDetail(macAddress: client.macAddress)
-            detailState = .loaded(detail)
-        } catch let error as APIError {
-            detailState = .error(error)
-        } catch {
-            detailState = .error(.networkError)
+        guard let serial = client.associatedDeviceSerial else { return }
+        if client.connectionType == .wireless {
+            connectedDeviceName = (try? await apiClient.fetchAPDetail(serial: serial))?.name
+        } else {
+            connectedDeviceName = (try? await apiClient.fetchSwitchDetail(serial: serial))?.name
         }
     }
 
-    func disconnect() async {
-        // NOTE: Per-client disconnect endpoint TBC (open item #2).
-        // Fallback: disconnect all clients from the associated AP.
-        guard let apSerial = client.associatedDeviceSerial else { return }
-        do {
-            try await apiClient.disconnectAllClientsFromAP(serial: apSerial)
-        } catch let error as APIError {
-            actionError = error
-        } catch {
-            actionError = .networkError
-        }
-    }
 }
 
 struct ClientDetailView: View {
@@ -55,26 +40,11 @@ struct ClientDetailView: View {
             content: { detail in detailContent(detail) },
             retry: { Task { await viewModel.load() } }
         )
+        .background(Color.appBackground)
         .navigationTitle(viewModel.client.name ?? viewModel.client.macAddress)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { disconnectButton }
         .task { await viewModel.load() }
         .refreshable { await viewModel.load() }
-        .alert("Action Failed", isPresented: Binding(
-            get: { viewModel.actionError != nil },
-            set: { if !$0 { viewModel.actionError = nil } }
-        )) {
-            Button("OK") { viewModel.actionError = nil }
-        } message: { Text(viewModel.actionError?.userMessage ?? "") }
-        .confirmationDialog("Disconnect client?",
-                            isPresented: $viewModel.showingDisconnectConfirm,
-                            titleVisibility: .visible) {
-            Button("Disconnect", role: .destructive) {
-                Task { await viewModel.disconnect() }
-            }
-        } message: {
-            Text("This will disconnect the client from the network. (Note: currently disconnects all clients on the AP — open item #2)")
-        }
     }
 
     @ViewBuilder
@@ -90,8 +60,8 @@ struct ClientDetailView: View {
                 if let ssid = client.ssid    { LabeledContent("SSID",   value: ssid) }
                 if let port = client.port    { LabeledContent("Port",   value: port) }
                 if let vlan = client.vlan    { LabeledContent("VLAN",   value: "\(vlan)") }
-                if let dev  = client.associatedDeviceSerial {
-                    LabeledContent("Device", value: dev)
+                if let dev = client.associatedDeviceSerial {
+                    LabeledContent("Device", value: viewModel.connectedDeviceName ?? dev)
                 }
                 if let site = client.siteName { LabeledContent("Site",   value: site) }
             }
@@ -115,16 +85,8 @@ struct ClientDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
     }
 
-    @ToolbarContentBuilder
-    private var disconnectButton: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button(role: .destructive) {
-                viewModel.showingDisconnectConfirm = true
-            } label: {
-                Label("Disconnect", systemImage: "wifi.slash")
-            }
-        }
-    }
 }

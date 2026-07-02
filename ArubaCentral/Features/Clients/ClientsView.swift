@@ -38,6 +38,7 @@ struct ClientsView: View {
                 }
             }
         }
+        .background(Color.appBackground)
         .navigationTitle("Clients")
         .searchable(text: $searchVM.query, prompt: "IP, MAC, or hostname")
         .overlay(alignment: .top) {
@@ -50,12 +51,13 @@ struct ClientsView: View {
         }
         .toolbar { sitePickerToolbar }
         .sheet(isPresented: $showingSitePicker) {
-            SitePickerSheet { site in
+            SitePickerSheet(sites: viewModel.sites) { site in
                 Task { await viewModel.selectSite(site) }
                 showingSitePicker = false
             }
         }
         .refreshable { await viewModel.refresh() }
+        .task { await viewModel.loadSites() }
     }
 
     // MARK: - Sub-views
@@ -84,6 +86,8 @@ struct ClientsView: View {
             wiredSection
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
     }
 
     @ViewBuilder
@@ -93,11 +97,6 @@ struct ClientsView: View {
                 ForEach(viewModel.wirelessClients) { client in
                     NavigationLink(value: client) {
                         ClientRowView(client: client)
-                    }
-                    .onAppear {
-                        if client.id == viewModel.wirelessClients.last?.id {
-                            Task { await viewModel.loadNextPage() }
-                        }
                     }
                 }
             }
@@ -111,11 +110,6 @@ struct ClientsView: View {
                 ForEach(viewModel.wiredClients) { client in
                     NavigationLink(value: client) {
                         ClientRowView(client: client)
-                    }
-                    .onAppear {
-                        if client.id == viewModel.wiredClients.last?.id {
-                            Task { await viewModel.loadNextPage() }
-                        }
                     }
                 }
             }
@@ -185,18 +179,22 @@ struct ClientRowView: View {
 // MARK: - SitePickerSheet
 
 private struct SitePickerSheet: View {
+    let sites: [String]
     let onSelect: (String?) -> Void
-
-    private let sites = ["HQ Campus", "Branch Office", "Warehouse", "Data Center"]
 
     var body: some View {
         NavigationStack {
             List {
                 Button("All Sites") { onSelect(nil) }
                     .foregroundStyle(.primary)
-                ForEach(sites, id: \.self) { site in
-                    Button(site) { onSelect(site) }
-                        .foregroundStyle(.primary)
+                if sites.isEmpty {
+                    Text("Loading sites…")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(sites, id: \.self) { site in
+                        Button(site) { onSelect(site) }
+                            .foregroundStyle(.primary)
+                    }
                 }
             }
             .listStyle(.insetGrouped)

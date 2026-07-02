@@ -17,6 +17,7 @@ struct LoadStateView<T, Content: View>: View {
                     .controlSize(.large)
                 Spacer()
             }
+            .frame(maxWidth: .infinity)
 
         case .loaded(let value):
             content(value)
@@ -36,6 +37,7 @@ struct LoadStateView<T, Content: View>: View {
                     .buttonStyle(.bordered)
                 Spacer()
             }
+            .frame(maxWidth: .infinity)
         }
     }
 }

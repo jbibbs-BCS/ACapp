@@ -15,6 +15,7 @@ struct AlertsView: View {
                 content: { alerts in alertList(alerts) },
                 retry: { Task { await viewModel.load() } }
             )
+            .background(Color.appBackground)
             .navigationTitle("Alerts")
             .navigationDestination(for: CentralAlert.self) { alert in
                 AlertDetailView(alert: alert, onAcknowledge: {
