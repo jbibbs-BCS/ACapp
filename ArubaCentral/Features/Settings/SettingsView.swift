@@ -90,6 +90,7 @@ struct SettingsView: View {
         } footer: {
             Text("Credentials are stored securely in the iOS Keychain.")
         }
+        .listRowBackground(Color.cardBackground)
     }
 
     @ViewBuilder
@@ -145,6 +146,7 @@ struct SettingsView: View {
         } footer: {
             Text("Choose which alert severities trigger push notifications.")
         }
+        .listRowBackground(Color.cardBackground)
     }
 
     // MARK: - Appearance Section
@@ -158,6 +160,7 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
         }
+        .listRowBackground(Color.cardBackground)
     }
 
     // MARK: - About Section
@@ -167,6 +170,7 @@ struct SettingsView: View {
             LabeledContent("Version", value: appVersion)
             LabeledContent("Build",   value: buildNumber)
         }
+        .listRowBackground(Color.cardBackground)
     }
 
     private var appVersion: String {

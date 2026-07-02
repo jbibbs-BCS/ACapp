@@ -52,10 +52,13 @@ struct SwitchDetailView: View {
     @ViewBuilder private var vlansTab: some View {
         LoadStateView(state: viewModel.vlansState,
                       content: { vlans in
-                          List(vlans) { vlan in VLANRowView(vlan: vlan) }
-                              .listStyle(.insetGrouped)
-                              .scrollContentBackground(.hidden)
-                              .background(Color.appBackground)
+                          List(vlans) { vlan in
+                              VLANRowView(vlan: vlan)
+                                  .listRowBackground(Color.cardBackground)
+                          }
+                          .listStyle(.insetGrouped)
+                          .scrollContentBackground(.hidden)
+                          .background(Color.appBackground)
                       },
                       retry: { Task { await viewModel.load() } })
     }
@@ -74,11 +77,13 @@ private struct SwitchOverviewContent: View {
                 if let ip  = sw.ipAddress  { LabeledContent("IP",       value: ip) }
                 if let mac = sw.macAddress { LabeledContent("MAC",      value: mac) }
             }
+            .listRowBackground(Color.cardBackground)
             Section("Status") {
                 LabeledContent("Status", value: sw.status == .up ? "Online" : "Offline")
                 if let uptime = sw.uptime { LabeledContent("Uptime", value: uptimeString(uptime)) }
                 if let site = sw.siteName { LabeledContent("Site",   value: site) }
             }
+            .listRowBackground(Color.cardBackground)
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)

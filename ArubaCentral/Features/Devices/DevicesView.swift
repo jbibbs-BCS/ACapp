@@ -62,14 +62,17 @@ struct DevicesView: View {
                         DeviceRowView(name: item.name, model: item.model,
                                      status: item.status, uptime: item.uptime)
                     }
+                    .listRowBackground(Color.cardBackground)
                 case .switch_(let sw):
                     NavigationLink(value: sw) {
                         DeviceRowView(name: item.name, model: item.model,
                                      status: item.status, uptime: item.uptime)
                     }
+                    .listRowBackground(Color.cardBackground)
                 case .stackMember(let member, _):
                     StackMemberRowView(member: member)
                         .padding(.leading, 16)
+                        .listRowBackground(Color.cardBackground)
                 }
             }
             .listStyle(.insetGrouped)

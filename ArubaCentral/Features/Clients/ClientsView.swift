@@ -100,6 +100,7 @@ struct ClientsView: View {
                     }
                 }
             }
+            .listRowBackground(Color.cardBackground)
         }
     }
 
@@ -113,6 +114,7 @@ struct ClientsView: View {
                     }
                 }
             }
+            .listRowBackground(Color.cardBackground)
         }
     }
 

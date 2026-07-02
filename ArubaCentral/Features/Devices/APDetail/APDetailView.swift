@@ -62,6 +62,7 @@ struct APDetailView: View {
                       content: { radios in
                           List(radios) { radio in
                               RadioRowView(radio: radio)
+                                  .listRowBackground(Color.cardBackground)
                           }
                           .listStyle(.insetGrouped)
                           .scrollContentBackground(.hidden)
@@ -103,6 +104,7 @@ struct APDetailView: View {
         } else {
             List(clients) { client in
                 APClientRowView(client: client)
+                    .listRowBackground(Color.cardBackground)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
@@ -140,6 +142,7 @@ private struct APOverviewContent: View {
                 if let ip = ap.ipAddress { monoRow("IP",       ip) }
                 monoRow("MAC", ap.macAddress)
             }
+            .listRowBackground(Color.cardBackground)
             Section("Status") {
                 LabeledContent("Status", value: ap.status == .up ? "Online" : "Offline")
                 if let uptime = ap.uptime {
@@ -149,6 +152,7 @@ private struct APOverviewContent: View {
                     LabeledContent("Clients", value: "\(count)")
                 }
             }
+            .listRowBackground(Color.cardBackground)
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)

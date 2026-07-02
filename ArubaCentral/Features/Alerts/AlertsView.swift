@@ -125,7 +125,10 @@ struct AlertRowView: View {
             .padding(.horizontal, 12)
         }
         .listRowBackground(
-            alert.isCleared ? Color.clear : alert.severity.color.opacity(0.04)
+            ZStack {
+                Color.cardBackground
+                if !alert.isCleared { alert.severity.color.opacity(0.06) }
+            }
         )
         .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
         .accessibilityElement(children: .combine)

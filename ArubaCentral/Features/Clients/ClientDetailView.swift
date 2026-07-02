@@ -55,6 +55,7 @@ struct ClientDetailView: View {
                 LabeledContent("MAC",     value: client.macAddress)
                 if let ip = client.ipAddress { LabeledContent("IP",  value: ip) }
             }
+            .listRowBackground(Color.cardBackground)
             Section("Connection") {
                 LabeledContent("Type",  value: client.connectionType == .wireless ? "Wireless" : "Wired")
                 if let ssid = client.ssid    { LabeledContent("SSID",   value: ssid) }
@@ -65,6 +66,7 @@ struct ClientDetailView: View {
                 }
                 if let site = client.siteName { LabeledContent("Site",   value: site) }
             }
+            .listRowBackground(Color.cardBackground)
             if client.connectionType == .wireless {
                 Section("Signal") {
                     if let rssi = client.signalStrength {
@@ -77,11 +79,13 @@ struct ClientDetailView: View {
                         LabeledContent("RX Rate",  value: String(format: "%.0f Mbps", rx))
                     }
                 }
+                .listRowBackground(Color.cardBackground)
             }
             if let connectedAt = client.connectedAt {
                 Section("Session") {
                     LabeledContent("Connected", value: connectedAt.formatted(.relative(presentation: .named)))
                 }
+                .listRowBackground(Color.cardBackground)
             }
         }
         .listStyle(.insetGrouped)

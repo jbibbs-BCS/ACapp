@@ -22,6 +22,7 @@ struct AlertDetailView: View {
                 }
                 .padding(.vertical, 4)
             }
+            .listRowBackground(Color.cardBackground)
 
             Section("Details") {
                 if let desc = alert.description {
@@ -39,11 +40,13 @@ struct AlertDetailView: View {
                 }
                 LabeledContent("Time", value: alert.createdAt.formatted(date: .abbreviated, time: .shortened))
             }
+            .listRowBackground(Color.cardBackground)
 
             Section("Status") {
                 if alert.isCleared {
                     Label("Acknowledged", systemImage: "checkmark.circle.fill")
                         .foregroundStyle(Color.healthGood)
+                        .listRowBackground(Color.cardBackground)
                 } else {
                     Button {
                         showingConfirm = true
