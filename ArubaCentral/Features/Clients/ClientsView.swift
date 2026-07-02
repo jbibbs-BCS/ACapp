@@ -40,6 +40,10 @@ struct ClientsView: View {
         }
         .background(Color.appBackground)
         .navigationTitle("Clients")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.navBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .searchable(text: $searchVM.query, prompt: "IP, MAC, or hostname")
         .overlay(alignment: .top) {
             if !searchVM.query.isEmpty {

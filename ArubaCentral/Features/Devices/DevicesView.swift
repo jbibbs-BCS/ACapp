@@ -19,6 +19,7 @@ struct DevicesView: View {
         )
         .background(Color.appBackground)
         .navigationTitle("Devices")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.navBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)

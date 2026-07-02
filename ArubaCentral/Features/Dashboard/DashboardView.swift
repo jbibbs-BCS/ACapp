@@ -19,6 +19,7 @@ struct DashboardView: View {
         )
         .background(Color.appBackground)
         .navigationTitle("Dashboard")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.navBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
