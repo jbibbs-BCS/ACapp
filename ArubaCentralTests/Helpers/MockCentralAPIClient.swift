@@ -13,8 +13,8 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
     var switchDetailResult:  Result<CentralSwitch, APIError>                     = .failure(.networkError)
     var interfacesResult:    Result<[SwitchInterface], APIError>                 = .success([])
     var vlansResult:         Result<[VLAN], APIError>                            = .success([])
+    var stackMembersResult:  Result<[StackMember], APIError>                     = .success([])
     var clientsResult:       Result<PaginatedResponse<CentralClient>, APIError>  = .success(.empty())
-    var clientDetailResult:  Result<CentralClient, APIError>                     = .failure(.networkError)
     var alertsResult:        Result<PaginatedResponse<CentralAlert>, APIError>   = .success(.empty())
     var clearAlertError:     APIError?                                           = nil
     var rebootError:         APIError?                                           = nil
@@ -81,15 +81,15 @@ final class MockCentralAPIClient: CentralAPIClientProtocol {
         return try vlansResult.get()
     }
 
+    func fetchStackMembers(serial: String) async throws -> [StackMember] {
+        return try stackMembersResult.get()
+    }
+
     func fetchClients(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient> {
         fetchClientsCallCount += 1
         lastSiteFilter  = site
         lastSearchQuery = search
         return try clientsResult.get()
-    }
-
-    func fetchClientDetail(macAddress: String) async throws -> CentralClient {
-        return try clientDetailResult.get()
     }
 
     func fetchAlerts(limit: Int, next: String?) async throws -> PaginatedResponse<CentralAlert> {

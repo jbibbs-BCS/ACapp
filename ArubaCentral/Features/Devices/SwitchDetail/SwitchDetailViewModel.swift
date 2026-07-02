@@ -17,22 +17,30 @@ final class SwitchDetailViewModel: ObservableObject {
     }
 
     func load() async {
-        // Overview uses the CentralSwitch passed from the list — no per-switch detail endpoint exists
+        // Overview uses the CentralSwitch passed from the list — no per-switch detail endpoint exists.
+        // Stacked switches require stackId; standalone switches use serial.
         detailState = .loaded(sw)
         portsState  = .loading
         vlansState  = .loading
+
+        let deviceId = sw.stackId ?? sw.serial
+
+        async let interfaces = client.fetchSwitchInterfaces(serial: deviceId)
+        async let vlans      = client.fetchSwitchVLANs(serial: deviceId)
+
         do {
-            async let interfaces = client.fetchSwitchInterfaces(serial: sw.serial)
-            async let vlans      = client.fetchSwitchVLANs(serial: sw.serial)
-            let (i, v) = try await (interfaces, vlans)
-            portsState = .loaded(i)
-            vlansState = .loaded(v)
-        } catch let error as APIError {
-            portsState = .error(error)
-            vlansState = .error(error)
+            portsState = .loaded(try await interfaces)
+        } catch let e as APIError {
+            portsState = .error(e)
         } catch {
             portsState = .error(.networkError)
-            vlansState = .error(.networkError)
+        }
+
+        do {
+            vlansState = .loaded(try await vlans)
+        } catch {
+            // VLAN data is not available for all switch types; show empty rather than error.
+            vlansState = .loaded([])
         }
     }
 

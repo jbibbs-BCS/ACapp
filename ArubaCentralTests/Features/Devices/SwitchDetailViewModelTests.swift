@@ -33,13 +33,32 @@ final class SwitchDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vlans.count, 1)
     }
 
-    func testLoadSetsErrorOnDetailFailure() async {
-        mockClient.switchDetailResult = .failure(.serverError(503))
-        mockClient.interfacesResult   = .success([])
-        mockClient.vlansResult        = .success([])
+    func testDetailStateAlwaysLoadedFromPassedSwitch() async {
+        // detailState uses the CentralSwitch from navigation — fetchSwitchDetail is not called
+        mockClient.interfacesResult = .success([])
+        mockClient.vlansResult      = .success([])
 
         await sut.load()
-        guard case .error = sut.detailState else { return XCTFail("Expected error") }
+        guard case .loaded(let loaded) = sut.detailState else { return XCTFail("Expected loaded") }
+        XCTAssertEqual(loaded.serial, sw.serial)
+    }
+
+    func testPortsErrorDoesNotAffectVLANsState() async {
+        mockClient.interfacesResult = .failure(.serverError(404))
+        mockClient.vlansResult      = .success([makeVLAN(10)])
+
+        await sut.load()
+        guard case .error = sut.portsState  else { return XCTFail("Expected portsState error") }
+        guard case .loaded = sut.vlansState else { return XCTFail("Expected vlansState loaded") }
+    }
+
+    func testVLANsErrorShowsEmptyInsteadOfError() async {
+        mockClient.interfacesResult = .success([])
+        mockClient.vlansResult      = .failure(.serverError(404))
+
+        await sut.load()
+        guard case .loaded(let vlans) = sut.vlansState else { return XCTFail("Expected vlansState loaded") }
+        XCTAssertTrue(vlans.isEmpty)
     }
 
     private func makeInterface(_ portId: String) -> SwitchInterface {

@@ -66,6 +66,9 @@ struct DevicesView: View {
                         DeviceRowView(name: item.name, model: item.model,
                                      status: item.status, uptime: item.uptime)
                     }
+                case .stackMember(let member, _):
+                    StackMemberRowView(member: member)
+                        .padding(.leading, 16)
                 }
             }
             .listStyle(.insetGrouped)
@@ -74,6 +77,41 @@ struct DevicesView: View {
 
     private func handleDeviceSearchSelection(_ result: SearchResult) {
         searchVM.query = ""
+    }
+}
+
+private struct StackMemberRowView: View {
+    let member: StackMember
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "cpu")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(member.serial)
+                        .font(.subheadline)
+                    if let role = member.role {
+                        Text(role.capitalized)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(.secondary.opacity(0.15), in: Capsule())
+                    }
+                }
+                if let model = member.model {
+                    Text(model)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            DeviceStatusBadge(status: member.status)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(member.role.map { $0.capitalized + " " } ?? "")Stack member \(member.serial)")
     }
 }
 

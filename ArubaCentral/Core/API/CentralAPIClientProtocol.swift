@@ -15,10 +15,10 @@ protocol CentralAPIClientProtocol: AnyObject {
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch
     func fetchSwitchInterfaces(serial: String) async throws -> [SwitchInterface]
     func fetchSwitchVLANs(serial: String) async throws -> [VLAN]
+    func fetchStackMembers(serial: String) async throws -> [StackMember]
 
     // Clients
     func fetchClients(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient>
-    func fetchClientDetail(macAddress: String) async throws -> CentralClient
 
     // Alerts
     func fetchAlerts(limit: Int, next: String?) async throws -> PaginatedResponse<CentralAlert>

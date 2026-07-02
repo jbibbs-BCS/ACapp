@@ -84,6 +84,8 @@ struct ThreeColumnDevicesView: View {
                 APDetailView(ap: ap, apiClient: viewModel.apiClient)
             case .switch_(let sw):
                 SwitchDetailView(sw: sw, apiClient: viewModel.apiClient)
+            case .stackMember:
+                EmptyView()
             }
         } else {
             VStack(spacing: 12) {

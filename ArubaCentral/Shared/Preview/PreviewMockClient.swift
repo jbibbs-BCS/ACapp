@@ -88,6 +88,8 @@ final class PreviewMockClient: CentralAPIClientProtocol {
 
     func fetchSwitchVLANs(serial: String) async throws -> [VLAN] { [] }
 
+    func fetchStackMembers(serial: String) async throws -> [StackMember] { [] }
+
     // MARK: - Clients
 
     func fetchClients(site: String?, search: String?, limit: Int, next: String?) async throws -> PaginatedResponse<CentralClient> {

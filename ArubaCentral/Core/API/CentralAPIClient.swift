@@ -104,39 +104,72 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     // These types handle the wire format; callers receive PaginatedResponse<T>.
 
     private struct SiteHealthListResponse: Decodable {
-        let sites: [Site]
-        let total: Int?
+        let items: [Site]
         let next: String?
     }
 
     private struct APListResponse: Decodable {
-        let aps: [AccessPoint]
-        let total: Int?
+        let items: [AccessPoint]
         let next: String?
     }
 
     private struct SwitchListResponse: Decodable {
-        let switches: [CentralSwitch]
-        let total: Int?
+        let items: [CentralSwitch]
         let next: String?
     }
 
     private struct ClientListResponse: Decodable {
-        let clients: [CentralClient]
+        let items: [CentralClient]
         let total: Int?
         let next: String?
     }
 
     private struct AlertListResponse: Decodable {
-        let alerts: [CentralAlert]
-        let total: Int?
+        let items: [CentralAlert]
         let next: String?
     }
 
     private struct RadioListResponse: Decodable {
-        let radios: [Radio]
-        let total: Int?
-        let next: String?
+        let items: [Radio]
+    }
+
+    private struct SwitchInterfaceListResponse: Decodable {
+        let items: [SwitchInterface]
+
+        private enum CodingKeys: String, CodingKey { case items, interfaces }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            items = (try? c.decode([SwitchInterface].self, forKey: .items))
+                 ?? (try? c.decode([SwitchInterface].self, forKey: .interfaces))
+                 ?? []
+        }
+    }
+
+    private struct VLANListResponse: Decodable {
+        let items: [VLAN]
+
+        private enum CodingKeys: String, CodingKey { case items, vlans }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            items = (try? c.decode([VLAN].self, forKey: .items))
+                 ?? (try? c.decode([VLAN].self, forKey: .vlans))
+                 ?? []
+        }
+    }
+
+    private struct StackMemberListResponse: Decodable {
+        let members: [StackMember]
+
+        private enum CodingKeys: String, CodingKey { case members, items }
+
+        init(from decoder: Decoder) throws {
+            let c   = try decoder.container(keyedBy: CodingKeys.self)
+            members = (try? c.decode([StackMember].self, forKey: .members))
+                   ?? (try? c.decode([StackMember].self, forKey: .items))
+                   ?? []
+        }
     }
 
     // MARK: - Sites
@@ -144,7 +177,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     func fetchSiteHealth() async throws -> [Site] {
         let request = try await buildRequest(path: "/network-monitoring/v1/sites-health")
         let response: SiteHealthListResponse = try await perform(request)
-        return response.sites
+        return response.items
     }
 
     // MARK: - APs
@@ -154,12 +187,11 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
         if let next { queryItems.append(.init(name: "next", value: next)) }
         var filters: [String] = []
-        if let site   { filters.append("siteName eq '\(site)'") }
-        if let search { filters.append("contains(deviceName, '\(search)')") }
+        if let site { filters.append("siteName eq '\(site)'") }
         if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
         let request = try await buildRequest(path: "/network-monitoring/v1/aps", queryItems: queryItems)
         let response: APListResponse = try await perform(request)
-        return PaginatedResponse(items: response.aps, total: response.total, next: response.next)
+        return PaginatedResponse(items: response.items, total: nil, next: response.next)
     }
 
     func fetchAPDetail(serial: String) async throws -> AccessPoint {
@@ -170,18 +202,26 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     func fetchAPRadios(serial: String) async throws -> [Radio] {
         let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(serial)/radios")
         let response: RadioListResponse = try await perform(request)
-        return response.radios
+        return response.items
     }
 
     func fetchAPClients(serial: String, limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<CentralClient> {
-        var queryItems: [URLQueryItem] = [
-            .init(name: "limit",  value: "\(limit)"),
-            .init(name: "filter", value: "associatedDevice eq '\(serial)'")
-        ]
-        if let next { queryItems.append(.init(name: "next", value: next)) }
-        let request = try await buildRequest(path: "/network-monitoring/v1/clients", queryItems: queryItems)
-        let response: ClientListResponse = try await perform(request)
-        return PaginatedResponse(items: response.clients, total: response.total, next: response.next)
+        // The clients endpoint has no per-device filter. Fetch up to 5 pages
+        // sequentially and match client-side on connectedDeviceSerial.
+        var all: [CentralClient] = []
+        var cursor: String? = nil
+        for _ in 1...5 {
+            var qi: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
+            if let cursor { qi.append(.init(name: "next", value: cursor)) }
+            let response: ClientListResponse = try await perform(
+                try await buildRequest(path: "/network-monitoring/v1/clients", queryItems: qi)
+            )
+            all.append(contentsOf: response.items)
+            cursor = response.next
+            if cursor == nil { break }
+        }
+        let filtered = all.filter { $0.associatedDeviceSerial == serial }
+        return PaginatedResponse(items: filtered, total: filtered.count, next: nil)
     }
 
     // MARK: - Switches
@@ -191,12 +231,11 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
         if let next { queryItems.append(.init(name: "next", value: next)) }
         var filters: [String] = []
-        if let site   { filters.append("siteName eq '\(site)'") }
-        if let search { filters.append("contains(deviceName, '\(search)')") }
+        if let site { filters.append("siteName eq '\(site)'") }
         if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
         let request = try await buildRequest(path: "/network-monitoring/v1/switches", queryItems: queryItems)
         let response: SwitchListResponse = try await perform(request)
-        return PaginatedResponse(items: response.switches, total: response.total, next: response.next)
+        return PaginatedResponse(items: response.items, total: nil, next: response.next)
     }
 
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch {
@@ -206,12 +245,20 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
 
     func fetchSwitchInterfaces(serial: String) async throws -> [SwitchInterface] {
         let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)/interfaces")
-        return try await perform(request)
+        let response: SwitchInterfaceListResponse = try await perform(request)
+        return response.items
     }
 
     func fetchSwitchVLANs(serial: String) async throws -> [VLAN] {
         let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)/vlans")
-        return try await perform(request)
+        let response: VLANListResponse = try await perform(request)
+        return response.items
+    }
+
+    func fetchStackMembers(serial: String) async throws -> [StackMember] {
+        let request = try await buildRequest(path: "/network-monitoring/v1/stack/\(serial)/members")
+        let response: StackMemberListResponse = try await perform(request)
+        return response.members
     }
 
     // MARK: - Clients
@@ -220,18 +267,12 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
                       limit: Int = 100, next: String? = nil) async throws -> PaginatedResponse<CentralClient> {
         var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
         if let next { queryItems.append(.init(name: "next", value: next)) }
-        var filters: [String] = []
-        if let site   { filters.append("siteName eq '\(site)'") }
-        if let search { filters.append("contains(name, '\(search)')") }
-        if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
         let request = try await buildRequest(path: "/network-monitoring/v1/clients", queryItems: queryItems)
         let response: ClientListResponse = try await perform(request)
-        return PaginatedResponse(items: response.clients, total: response.total, next: response.next)
-    }
-
-    func fetchClientDetail(macAddress: String) async throws -> CentralClient {
-        let request = try await buildRequest(path: "/network-monitoring/v1/clients/\(macAddress)")
-        return try await perform(request)
+        var items = response.items
+        if let site   { items = items.filter { $0.siteName == site } }
+        if let search { items = items.filter { ($0.name ?? "").localizedCaseInsensitiveContains(search) } }
+        return PaginatedResponse(items: items, total: items.count, next: response.next)
     }
 
     // MARK: - Alerts
@@ -241,7 +282,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         if let next { queryItems.append(.init(name: "next", value: next)) }
         let request = try await buildRequest(path: "/network-notifications/v1/alerts", queryItems: queryItems)
         let response: AlertListResponse = try await perform(request)
-        return PaginatedResponse(items: response.alerts, total: response.total, next: response.next)
+        return PaginatedResponse(items: response.items, total: nil, next: response.next)
     }
 
     func clearAlert(alertId: String) async throws {
@@ -300,13 +341,59 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     // MARK: - Search
 
     func searchDevices(query: String) async throws -> [SearchResult] {
-        async let apsPage      = fetchAPs(site: nil, search: query, limit: 50, next: nil)
-        async let switchesPage = fetchSwitches(site: nil, search: query, limit: 50, next: nil)
-        async let clientsPage  = fetchClients(site: nil, search: query, limit: 50, next: nil)
-        let (aps, switches, clients) = try await (apsPage, switchesPage, clientsPage)
-        return aps.items.map { .ap($0) }
-             + switches.items.map { .switch_($0) }
-             + clients.items.map { .client($0) }
+        let q = query.lowercased()
+        async let apsFetch      = fetchAllPages_APs()
+        async let switchesFetch = fetchAllPages_Switches()
+        async let clientsFetch  = fetchAllPages_Clients()
+        let (aps, switches, clients) = try await (apsFetch, switchesFetch, clientsFetch)
+        return aps.filter {
+                    $0.name.lowercased().contains(q) ||
+                    ($0.ipAddress ?? "").contains(q) ||
+                    $0.macAddress.lowercased().contains(q)
+               }.map { .ap($0) }
+             + switches.filter {
+                    $0.name.lowercased().contains(q) ||
+                    ($0.ipAddress ?? "").contains(q) ||
+                    ($0.macAddress ?? "").lowercased().contains(q)
+               }.map { .switch_($0) }
+             + clients.filter {
+                    ($0.name ?? "").lowercased().contains(q) ||
+                    ($0.ipAddress ?? "").contains(q) ||
+                    $0.macAddress.lowercased().contains(q)
+               }.map { .client($0) }
+    }
+
+    private func fetchAllPages_APs() async throws -> [AccessPoint] {
+        var all: [AccessPoint] = []
+        var cursor: String? = nil
+        repeat {
+            let page = try await fetchAPs(site: nil, search: nil, limit: 100, next: cursor)
+            all.append(contentsOf: page.items)
+            cursor = page.next
+        } while cursor != nil
+        return all
+    }
+
+    private func fetchAllPages_Switches() async throws -> [CentralSwitch] {
+        var all: [CentralSwitch] = []
+        var cursor: String? = nil
+        repeat {
+            let page = try await fetchSwitches(site: nil, search: nil, limit: 100, next: cursor)
+            all.append(contentsOf: page.items)
+            cursor = page.next
+        } while cursor != nil
+        return all
+    }
+
+    private func fetchAllPages_Clients() async throws -> [CentralClient] {
+        var all: [CentralClient] = []
+        var cursor: String? = nil
+        repeat {
+            let page = try await fetchClients(site: nil, search: nil, limit: 100, next: cursor)
+            all.append(contentsOf: page.items)
+            cursor = page.next
+        } while cursor != nil
+        return all
     }
 }
 
