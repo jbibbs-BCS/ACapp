@@ -22,21 +22,31 @@ final class APDetailViewModel: ObservableObject {
         detailState  = .loading
         radiosState  = .loading
         clientsState = .loading
+        // Load detail + radios together; clients separately so rate-limiting
+        // on the paginated client fetch never breaks the Overview/Radios tabs.
+        async let detailTask = client.fetchAPDetail(serial: ap.serial)
+        async let radiosTask = client.fetchAPRadios(serial: ap.serial)
         do {
-            async let detail  = client.fetchAPDetail(serial: ap.serial)
-            async let radios  = client.fetchAPRadios(serial: ap.serial)
-            async let clients = client.fetchAPClients(serial: ap.serial, limit: 100, next: nil)
-            let (d, r, c) = try await (detail, radios, clients)
-            detailState  = .loaded(d)
-            radiosState  = .loaded(r)
-            clientsState = .loaded(c.items)
+            let (d, r) = try await (detailTask, radiosTask)
+            detailState = .loaded(d)
+            radiosState = .loaded(r)
         } catch let error as APIError {
             detailState  = .error(error)
             radiosState  = .error(error)
             clientsState = .error(error)
+            return
         } catch {
             detailState  = .error(.networkError)
             radiosState  = .error(.networkError)
+            clientsState = .error(.networkError)
+            return
+        }
+        do {
+            let c = try await client.fetchAPClients(serial: ap.serial, limit: 100, next: nil)
+            clientsState = .loaded(c.items)
+        } catch let error as APIError {
+            clientsState = .error(error)
+        } catch {
             clientsState = .error(.networkError)
         }
     }
