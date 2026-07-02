@@ -35,6 +35,11 @@ extension Color {
     static let brandOrange      = Color(red: 1.000, green: 0.514, blue: 0.000) // #FF8300
     static let brandNavy        = Color(red: 0.051, green: 0.153, blue: 0.302) // #0D274D
     static let brandOrangeMuted = Color(UIColor(red: 1.000, green: 0.514, blue: 0.000, alpha: 0.12))
+    static let brandSectionHeader: Color = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.7)
+            : UIColor(red: 0.051, green: 0.153, blue: 0.302, alpha: 1)
+    })
 }
 
 // MARK: - Health / status tokens (names unchanged — all existing call sites compile without modification)

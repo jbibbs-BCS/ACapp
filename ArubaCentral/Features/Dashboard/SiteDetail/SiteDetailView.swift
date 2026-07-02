@@ -76,7 +76,7 @@ struct SiteDetailView: View {
                 .font(.caption.weight(.semibold))
                 .tracking(1.0)
                 .textCase(.uppercase)
-                .foregroundStyle(Color.brandNavy.opacity(0.7))
+                .foregroundStyle(Color.brandSectionHeader)
                 .padding(.top, 8)
         }
     }
@@ -121,7 +121,7 @@ struct SiteDetailView: View {
                 .font(.caption.weight(.semibold))
                 .tracking(1.0)
                 .textCase(.uppercase)
-                .foregroundStyle(Color.brandNavy.opacity(0.7))
+                .foregroundStyle(Color.brandSectionHeader)
                 .padding(.top, 4)
         }
     }

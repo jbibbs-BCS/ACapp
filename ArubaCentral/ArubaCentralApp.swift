@@ -52,22 +52,35 @@ struct ArubaCentralApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(networkMonitor)
-                .environmentObject(authManager)
-                .environmentObject(apiClient)
-                .environmentObject(alertsViewModel)
-                .environmentObject(pushHandler)
-                .onAppear { appDelegate.pushHandler = pushHandler }
-                .onReceive(authManager.$isAuthenticated) { authenticated in
-                    if authenticated {
-                        Task { await pushHandler.requestAuthorizationAndRegister() }
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    AlertBackgroundRefresh.scheduleNext()
-                }
+#if DEBUG
+            let previewArgs = ["-PreviewMode", "-PreviewSiteDetail", "-PreviewAPDetail", "-PreviewSwitchDetail", "-PreviewAlerts"]
+            if ProcessInfo.processInfo.arguments.contains(where: { previewArgs.contains($0) }) {
+                PreviewRootView()
+            } else {
+                rootView
+            }
+#else
+            rootView
+#endif
         }
+    }
+
+    private var rootView: some View {
+        RootView()
+            .environmentObject(networkMonitor)
+            .environmentObject(authManager)
+            .environmentObject(apiClient)
+            .environmentObject(alertsViewModel)
+            .environmentObject(pushHandler)
+            .onAppear { appDelegate.pushHandler = pushHandler }
+            .onReceive(authManager.$isAuthenticated) { authenticated in
+                if authenticated {
+                    Task { await pushHandler.requestAuthorizationAndRegister() }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                AlertBackgroundRefresh.scheduleNext()
+            }
     }
 }
 
