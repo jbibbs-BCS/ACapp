@@ -8,6 +8,7 @@ enum APIError: Error, Equatable {
     case networkError
     case decodingError
     case sessionExpired
+    case invalidRequest
     case unknown(String)
 
     var userMessage: String {
@@ -26,6 +27,8 @@ enum APIError: Error, Equatable {
             return "No network connection."
         case .decodingError:
             return "Unexpected response format."
+        case .invalidRequest:
+            return "Couldn't build a valid request."
         case .unknown(let message):
             return "An unexpected error occurred: \(message)"
         }

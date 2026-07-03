@@ -1,0 +1,104 @@
+# Custom semgrep rules for ArubaCentral — patterns the community packs miss.
+# Authored 2026-07-03 as part of the Phase 1 security assessment.
+# These encode the specific logic/design defects found by manual review so they
+# are caught in CI going forward. Each rule maps to a finding in ../findings.md.
+#
+# Run:  semgrep --config docs/security/semgrep-rules/aruba-custom.yml .   (cwd = repo root)
+#
+# NOTE: Swift is experimental in semgrep; the Swift rules use pattern-regex for
+# robustness against parser gaps rather than relying on AST patterns.
+
+rules:
+  # ── R-1 ─────────────────────────────────────────────────────────────────────
+  # Fail-open auth: an entire auth check gated behind the truthiness of the very
+  # secret it validates. If the secret env var is unset/empty, the guard is skipped.
+  - id: relay-auth-fail-open-on-secret
+    languages: [typescript]
+    severity: ERROR
+    message: >
+      Fail-open authentication: this `if ($ENV.$SECRET)` gate skips the entire
+      auth check when the secret is unset/empty, so a missing config silently
+      disables authentication. Fail CLOSED — reject the request when the secret
+      is not configured. (findings.md R-1)
+    metadata:
+      finding: R-1
+      cwe: "CWE-305: Authentication Bypass by Primary Weakness"
+      owasp: "API2:2023 Broken Authentication"
+    patterns:
+      - pattern: |
+          if ($ENV.$SECRET) { ... }
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: (?i).*(SECRET|TOKEN|APIKEY|API_KEY|PASSWORD).*
+
+  # ── R-3 ─────────────────────────────────────────────────────────────────────
+  # Non-constant-time comparison of a secret with ===/!== leaks length/prefix
+  # timing. Use a constant-time compare (hash both sides, compare digests).
+  - id: relay-non-constant-time-secret-compare
+    languages: [typescript]
+    severity: WARNING
+    message: >
+      Non-constant-time secret comparison. `===`/`!==` short-circuits on the
+      first differing byte, leaking timing about the secret. Use a constant-time
+      compare (e.g. SHA-256 digest both sides, then compare). (findings.md R-3)
+    metadata:
+      finding: R-3
+      cwe: "CWE-208: Observable Timing Discrepancy"
+    # Scoped to the Worker `env` object so unrelated equality on fields like
+    # `record.device_token` is not flagged. Widen `env` if secrets are read into
+    # locals before comparison.
+    patterns:
+      - pattern-either:
+          - pattern: $X === env.$SECRET
+          - pattern: $X !== env.$SECRET
+          - pattern: env.$SECRET === $X
+          - pattern: env.$SECRET !== $X
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: (?i).*(SECRET|APIKEY|API_KEY|PASSWORD).*
+
+  # ── A-1 ─────────────────────────────────────────────────────────────────────
+  # Force-unwrapping URL construction turns malformed server data into a crash
+  # (client-side DoS). Build safely and throw an error instead.
+  - id: swift-url-construction-force-unwrap
+    languages: [generic]
+    severity: WARNING   # de-rated from ERROR: A-1 REFUTED on iOS 26.5 (new Foundation is
+                        # lenient, does not return nil). Latent smell only; would resurface
+                        # as a crash if the deployment target is lowered to iOS <= 18.
+    message: >
+      Force-unwrapped URL construction. `URLComponents(string:)!` / `.url!`. On the
+      current deployment target (iOS 26.5 / swift-foundation) this does NOT trap for
+      malformed input (finding A-1 refuted at runtime), but it is non-idiomatic and
+      would crash on older Foundation. Prefer guard/throw. (findings.md A-1)
+    metadata:
+      finding: A-1
+      status: refuted-on-ios-26.5
+      cwe: "CWE-248: Uncaught Exception / DoS"
+    # Excludes test/mock code, which force-unwraps known-good URLs intentionally.
+    paths:
+      include: ["*.swift"]
+      exclude: ["*Tests*", "*Mock*", "*Preview*"]
+    patterns:
+      - pattern-either:
+          - pattern-regex: 'URLComponents\(string:[^)]*\)!'
+          - pattern-regex: '\.url!'
+
+  # ── A-2 ─────────────────────────────────────────────────────────────────────
+  # A variable interpolated directly into a request path (no percent-encoding)
+  # allows path/query smuggling into the request — including action endpoints.
+  - id: swift-interpolated-request-path
+    languages: [generic]
+    severity: WARNING
+    message: >
+      Interpolated value in a request path string. Raw `\(...)` in a
+      buildRequest/postRequest path is not percent-encoded, so `/`, `?`, `#`, or
+      `../` in the value can alter the request path (path/query injection into,
+      e.g., reboot/disconnect endpoints). Percent-encode or validate the segment.
+      (findings.md A-2)
+    metadata:
+      finding: A-2
+      cwe: "CWE-88: Argument Injection / CWE-74"
+    paths:
+      include: ["*.swift"]
+    patterns:
+      - pattern-regex: '(buildRequest|postRequest)\(path:\s*"[^"]*\\\([^"]*"'

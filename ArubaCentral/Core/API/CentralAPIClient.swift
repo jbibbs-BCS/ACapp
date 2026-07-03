@@ -25,21 +25,48 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     // MARK: - Settings
 
     func updateBaseURL(_ url: URL) {
+        // Defense-in-depth (N-2): only accept a base URL from the region allowlist, so no
+        // attacker-influenced value could ever aim the client (and its Bearer token) elsewhere.
+        guard CentralRegion.all.contains(where: { $0.baseURL == url }) else { return }
         baseURL = url
     }
 
     // MARK: - Private helpers
 
-    // Uses string concatenation rather than appendingPathComponent so that
-    // multi-segment paths like /network-monitoring/v1/aps are not percent-encoded.
+    // Interpolated path segments (serials, etc.) must be percent-encoded via `pathSegment`
+    // at the call site so they can't smuggle path/query separators (A-2). The `path` passed
+    // here is treated as already-safe literal structure plus pre-encoded segments.
+    private static let pathSegmentAllowed = CharacterSet(charactersIn:
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
+    // Hard cap on search pagination (A-4): 50 pages × 100 = 5,000 items. Prevents a hostile
+    // or looping `next` cursor from driving an unbounded fetch / memory-exhaustion DoS.
+    private static let maxSearchPages = 50
+
+    /// Percent-encode one variable path segment; reject empty. (A-2)
+    private func pathSegment(_ raw: String) throws -> String {
+        guard let enc = raw.addingPercentEncoding(withAllowedCharacters: Self.pathSegmentAllowed),
+              !enc.isEmpty else { throw APIError.invalidRequest }
+        return enc
+    }
+
+    /// OData string-literal escaping: a single quote is doubled. (A-3)
+    private func odataEscaped(_ s: String) -> String {
+        s.replacingOccurrences(of: "'", with: "''")
+    }
+
     private func buildRequest(path: String, queryItems: [URLQueryItem] = []) async throws -> URLRequest {
         let base = baseURL.absoluteString.hasSuffix("/")
             ? String(baseURL.absoluteString.dropLast())
             : baseURL.absoluteString
         let normalizedPath = path.hasPrefix("/") ? path : "/" + path
-        var components = URLComponents(string: base + normalizedPath)!
+        // Guarded construction (A-1): throw rather than trap on a malformed URL.
+        guard var components = URLComponents(string: base + normalizedPath) else {
+            throw APIError.invalidRequest
+        }
         if !queryItems.isEmpty { components.queryItems = queryItems }
-        var request = URLRequest(url: components.url!)
+        guard let url = components.url else { throw APIError.invalidRequest }
+        var request = URLRequest(url: url)
         do {
             let token = try await authManager.validToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -187,7 +214,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
         if let next { queryItems.append(.init(name: "next", value: next)) }
         var filters: [String] = []
-        if let site { filters.append("siteName eq '\(site)'") }
+        if let site { filters.append("siteName eq '\(odataEscaped(site))'") }
         if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
         let request = try await buildRequest(path: "/network-monitoring/v1/aps", queryItems: queryItems)
         let response: APListResponse = try await perform(request)
@@ -195,12 +222,12 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchAPDetail(serial: String) async throws -> AccessPoint {
-        let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(serial)")
+        let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(try pathSegment(serial))")
         return try await perform(request)
     }
 
     func fetchAPRadios(serial: String) async throws -> [Radio] {
-        let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(serial)/radios")
+        let request = try await buildRequest(path: "/network-monitoring/v1/aps/\(try pathSegment(serial))/radios")
         let response: RadioListResponse = try await perform(request)
         return response.items
     }
@@ -231,7 +258,7 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
         var queryItems: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
         if let next { queryItems.append(.init(name: "next", value: next)) }
         var filters: [String] = []
-        if let site { filters.append("siteName eq '\(site)'") }
+        if let site { filters.append("siteName eq '\(odataEscaped(site))'") }
         if !filters.isEmpty { queryItems.append(.init(name: "filter", value: filters.joined(separator: " and "))) }
         let request = try await buildRequest(path: "/network-monitoring/v1/switches", queryItems: queryItems)
         let response: SwitchListResponse = try await perform(request)
@@ -239,24 +266,24 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     }
 
     func fetchSwitchDetail(serial: String) async throws -> CentralSwitch {
-        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)")
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(try pathSegment(serial))")
         return try await perform(request)
     }
 
     func fetchSwitchInterfaces(serial: String) async throws -> [SwitchInterface] {
-        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)/interfaces")
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(try pathSegment(serial))/interfaces")
         let response: SwitchInterfaceListResponse = try await perform(request)
         return response.items
     }
 
     func fetchSwitchVLANs(serial: String) async throws -> [VLAN] {
-        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(serial)/vlans")
+        let request = try await buildRequest(path: "/network-monitoring/v1/switches/\(try pathSegment(serial))/vlans")
         let response: VLANListResponse = try await perform(request)
         return response.items
     }
 
     func fetchStackMembers(serial: String) async throws -> [StackMember] {
-        let request = try await buildRequest(path: "/network-monitoring/v1/stack/\(serial)/members")
+        let request = try await buildRequest(path: "/network-monitoring/v1/stack/\(try pathSegment(serial))/members")
         let response: StackMemberListResponse = try await perform(request)
         return response.members
     }
@@ -297,19 +324,19 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     // verify against a live environment if they return 404.
 
     func rebootAP(serial: String) async throws {
-        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(serial)/reboot",
+        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(try pathSegment(serial))/reboot",
                                             body: EmptyBody())
         try await performVoid(request)
     }
 
     func blinkAPLED(serial: String) async throws {
-        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(serial)/locate",
+        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(try pathSegment(serial))/locate",
                                             body: EmptyBody())
         try await performVoid(request)
     }
 
     func disconnectAllClientsFromAP(serial: String) async throws {
-        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(serial)/disconnect-clients",
+        let request = try await postRequest(path: "/network-troubleshooting/v1alpha1/aps/\(try pathSegment(serial))/disconnect-clients",
                                             body: EmptyBody())
         try await performVoid(request)
     }
@@ -366,33 +393,39 @@ final class CentralAPIClient: ObservableObject, CentralAPIClientProtocol {
     private func fetchAllPages_APs() async throws -> [AccessPoint] {
         var all: [AccessPoint] = []
         var cursor: String? = nil
+        var pages = 0
         repeat {
             let page = try await fetchAPs(site: nil, search: nil, limit: 100, next: cursor)
             all.append(contentsOf: page.items)
             cursor = page.next
-        } while cursor != nil
+            pages += 1
+        } while cursor != nil && pages < Self.maxSearchPages
         return all
     }
 
     private func fetchAllPages_Switches() async throws -> [CentralSwitch] {
         var all: [CentralSwitch] = []
         var cursor: String? = nil
+        var pages = 0
         repeat {
             let page = try await fetchSwitches(site: nil, search: nil, limit: 100, next: cursor)
             all.append(contentsOf: page.items)
             cursor = page.next
-        } while cursor != nil
+            pages += 1
+        } while cursor != nil && pages < Self.maxSearchPages
         return all
     }
 
     private func fetchAllPages_Clients() async throws -> [CentralClient] {
         var all: [CentralClient] = []
         var cursor: String? = nil
+        var pages = 0
         repeat {
             let page = try await fetchClients(site: nil, search: nil, limit: 100, next: cursor)
             all.append(contentsOf: page.items)
             cursor = page.next
-        } while cursor != nil
+            pages += 1
+        } while cursor != nil && pages < Self.maxSearchPages
         return all
     }
 }

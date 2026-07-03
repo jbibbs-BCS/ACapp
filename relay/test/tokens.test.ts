@@ -1,10 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { loadTokens, saveToken, shouldNotify, TokenRecord } from '../src/tokens';
+import { loadTokens, saveToken, deleteToken, shouldNotify, TokenRecord } from '../src/tokens';
 
 class MockKV {
-  private store: Record<string, string> = {};
+  store: Record<string, string> = {};
   async get(key: string): Promise<string | null> { return this.store[key] ?? null; }
   async put(key: string, value: string): Promise<void> { this.store[key] = value; }
+  async delete(key: string): Promise<void> { delete this.store[key]; }
+  async list({ prefix = '' }: { prefix?: string; cursor?: string } = {}) {
+    const keys = Object.keys(this.store)
+      .filter(k => k.startsWith(prefix))
+      .map(name => ({ name }));
+    return { keys, list_complete: true as const };
+  }
+  keyNames(): string[] { return Object.keys(this.store); }
 }
 
 const defaultPrefs = { critical: true, major: true, minor: false, info: false };
@@ -45,6 +53,28 @@ describe('saveToken', () => {
     const tokens = await loadTokens(kv);
     expect(tokens).toHaveLength(1);
     expect(tokens[0].preferences.critical).toBe(false);
+  });
+});
+
+// R-4/R-5: per-token KV keys (no single blob, no read-modify-write race).
+describe('per-token KV layout (R-4/R-5)', () => {
+  it('stores one key per token, not a single shared blob', async () => {
+    const kv = new MockKV();
+    await saveToken(kv as unknown as KVNamespace, makeRecord('tokA'));
+    await saveToken(kv as unknown as KVNamespace, makeRecord('tokB'));
+    const names = kv.keyNames();
+    expect(names).toContain('token:tokA');
+    expect(names).toContain('token:tokB');
+    expect(names).not.toContain('registered_tokens'); // old single-blob key is gone
+  });
+
+  it('deleteToken removes exactly one token (for 410 pruning / unregister)', async () => {
+    const kv = new MockKV() as unknown as KVNamespace;
+    await saveToken(kv, makeRecord('keep'));
+    await saveToken(kv, makeRecord('drop'));
+    await deleteToken(kv, 'drop');
+    const tokens = await loadTokens(kv);
+    expect(tokens.map(t => t.device_token)).toEqual(['keep']);
   });
 });
 

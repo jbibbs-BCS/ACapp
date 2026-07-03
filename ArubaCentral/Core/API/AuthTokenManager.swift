@@ -10,9 +10,23 @@ final class AuthTokenManager: ObservableObject {
 
     @Published private(set) var isAuthenticated = false
 
+    // Coalesces concurrent refreshes into one in-flight fetch (A-7). MainActor-isolated,
+    // so the check-and-set below is race-free.
+    private var refreshTask: Task<String, Error>?
+
     init(session: URLSession = .shared) {
         self.session = session
-        isAuthenticated = (try? keychain.retrieve(for: .accessToken)) != nil
+        isAuthenticated = Self.hasUnexpiredToken(keychain)
+    }
+
+    // "Authenticated" means we hold a token that is not past its stored expiry (A-8) —
+    // not merely that some token string exists. (True server-side validity is still
+    // reconciled on the first 401.)
+    private static func hasUnexpiredToken(_ keychain: KeychainManager) -> Bool {
+        guard (try? keychain.retrieve(for: .accessToken)) != nil,
+              let expiryString = try? keychain.retrieve(for: .tokenExpiry),
+              let expiry = Double(expiryString) else { return false }
+        return Date().timeIntervalSince1970 < expiry
     }
 
     func validToken() async throws -> String {
@@ -27,6 +41,21 @@ final class AuthTokenManager: ObservableObject {
 
     @discardableResult
     func fetchNewToken() async throws -> String {
+        // Single-flight: if a refresh is already running, await its result instead of
+        // firing another token request (A-7). Prevents a fan-out (e.g. searchDevices'
+        // 3 paginators) from stampeding the OAuth endpoint / racing keychain writes.
+        if let task = refreshTask {
+            return try await task.value
+        }
+        let task = Task { () throws -> String in
+            defer { refreshTask = nil }
+            return try await performTokenFetch()
+        }
+        refreshTask = task
+        return try await task.value
+    }
+
+    private func performTokenFetch() async throws -> String {
         let clientId     = try keychain.retrieve(for: .clientId)
         let clientSecret = try keychain.retrieve(for: .clientSecret)
 

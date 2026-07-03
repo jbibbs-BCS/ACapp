@@ -63,3 +63,40 @@ describe('parseWebhook', () => {
     expect(result?.body).toBe('Fallback text');
   });
 });
+
+// R-6: cap + sanitize attacker-influenceable notification content.
+describe('parseWebhook content sanitization (R-6)', () => {
+  it('strips C0 control chars and DEL from the title', () => {
+    const result = parseWebhook({ nid: 'x', name: 'Alerter' });
+    expect(result?.title).toBe('Alerter');
+  });
+
+  it('strips bidi override/isolate formatting from the title', () => {
+    const result = parseWebhook({ nid: 'x', name: 'Alert‮gnp.exe‬' });
+    expect(result?.title).toBe('Alertgnp.exe');
+  });
+
+  it('caps an overlong title at 120 chars', () => {
+    const result = parseWebhook({ nid: 'x', name: 'A'.repeat(5000) });
+    expect(result?.title.length).toBe(120);
+  });
+
+  it('caps an overlong body at 240 chars', () => {
+    const result = parseWebhook({ nid: 'x', description: 'B'.repeat(5000) });
+    expect(result?.body?.length).toBe(240);
+  });
+
+  it('strips newlines and tabs from the body', () => {
+    const result = parseWebhook({ nid: 'x', description: 'line1\nline2\ttail' });
+    expect(result?.body).toBe('line1line2tail');
+  });
+
+  it('leaves normal content (incl. the em-dash separator) intact', () => {
+    const result = parseWebhook({
+      nid: 'x', name: 'AP Disconnected',
+      site_name: 'Main Office', device_serial: 'CNF1234567',
+    });
+    expect(result?.title).toBe('AP Disconnected');
+    expect(result?.body).toBe('Main Office — CNF1234567');
+  });
+});

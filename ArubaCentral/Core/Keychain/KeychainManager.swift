@@ -30,7 +30,9 @@ final class KeychainManager {
             kSecClass:          kSecClassGenericPassword,
             kSecAttrService:    service,
             kSecAttrAccount:    key.rawValue,
-            kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked,
+            // ThisDeviceOnly (A-6): the tenant OAuth secret & tokens must not ride iCloud
+            // Keychain sync or device backups off this device.
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecValueData:      data
         ]
         SecItemDelete(query as CFDictionary)
@@ -39,11 +41,12 @@ final class KeychainManager {
     }
 
     func retrieve(for key: Key) throws -> String {
+        // Note: kSecAttrAccessible is not a match attribute for lookups; it is set on save
+        // (A-6). Omitting it here keeps retrieval working regardless of the stored class.
         let query: [CFString: Any] = [
             kSecClass:           kSecClassGenericPassword,
             kSecAttrService:     service,
             kSecAttrAccount:     key.rawValue,
-            kSecAttrAccessible:  kSecAttrAccessibleWhenUnlocked,
             kSecReturnData:      true,
             kSecMatchLimit:      kSecMatchLimitOne
         ]

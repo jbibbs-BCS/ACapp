@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage("appearance") private var appearanceRaw = "system"
     @State private var showingClientSecret = false
     @State private var credentialsError: String? = nil
+    @Environment(\.scenePhase) private var scenePhase
 
     init(apiClient: CentralAPIClientProtocol) {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(apiClient: apiClient))
@@ -24,6 +25,11 @@ struct SettingsView: View {
         .toolbarBackground(Color.navBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        // A-11: collapse a revealed secret when leaving the foreground so the
+        // app-switcher snapshot never captures the plaintext client secret.
+        .onChangeCompat(of: scenePhase) { phase in
+            if phase != .active { showingClientSecret = false }
+        }
         .alert("Error", isPresented: Binding(
             get: { credentialsError != nil },
             set: { if !$0 { credentialsError = nil } }
