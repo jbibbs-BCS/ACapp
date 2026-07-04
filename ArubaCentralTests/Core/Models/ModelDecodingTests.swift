@@ -72,6 +72,31 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(ap.uptime, 86400)    // ms → seconds
     }
 
+    func testAccessPointWLANsDecodeAndFilterEnabled() throws {
+        let json = """
+        {
+            "serialNumber": "AP00000001",
+            "deviceName": "ap_1",
+            "model": "AP-275",
+            "status": "ONLINE",
+            "macAddress": "11:22:33:44:55:66",
+            "wlans": [
+                { "wlanName": "wlan1", "band": "5 GHz", "status": "ENABLED",  "vlan": "11" },
+                { "wlanName": "wlan2", "band": "2.4 GHz", "status": "DISABLED", "vlan": "12" }
+            ]
+        }
+        """.data(using: .utf8)!
+        let ap = try decoder.decode(AccessPoint.self, from: json)
+        XCTAssertEqual(ap.wlans?.count, 2)
+        // enabledWLANs keeps only ENABLED entries
+        XCTAssertEqual(ap.enabledWLANs.count, 1)
+        let wlan = try XCTUnwrap(ap.enabledWLANs.first)
+        XCTAssertEqual(wlan.wlanName, "wlan1")
+        XCTAssertEqual(wlan.band, "5 GHz")
+        XCTAssertEqual(wlan.vlan, "11")
+        XCTAssertTrue(wlan.isEnabled)
+    }
+
     func testAccessPointOptionalFieldsMissing() throws {
         let json = """
         {

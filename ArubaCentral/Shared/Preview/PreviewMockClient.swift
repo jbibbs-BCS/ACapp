@@ -36,7 +36,12 @@ final class PreviewMockClient: CentralAPIClientProtocol {
     func fetchAPDetail(serial: String) async throws -> AccessPoint {
         AccessPoint(serial: serial, name: "AP-Lobby", model: "AP-515", status: .up,
                     ipAddress: "10.0.1.10", macAddress: "AA:BB:CC:DD:EE:01",
-                    firmware: "10.4.1.0-dev", uptime: 864000, site: "HQ Campus", clientCount: 24)
+                    firmware: "10.4.1.0-dev", uptime: 864000, site: "HQ Campus", clientCount: 24,
+                    wlans: [
+                        WLAN(wlanName: "ArubaCorp",   band: "5 GHz",   vlan: "10", status: "ENABLED"),
+                        WLAN(wlanName: "ArubaGuest",  band: "2.4 GHz", vlan: "20", status: "ENABLED"),
+                        WLAN(wlanName: "ArubaLegacy", band: "2.4 GHz", vlan: "99", status: "DISABLED")
+                    ])
     }
 
     func fetchAPRadios(serial: String) async throws -> [Radio] {

@@ -153,6 +153,28 @@ private struct APOverviewContent: View {
                 }
             }
             .listRowBackground(Color.cardBackground)
+            if !ap.enabledWLANs.isEmpty {
+                Section("WLANs") {
+                    ForEach(ap.enabledWLANs) { wlan in
+                        HStack(spacing: 8) {
+                            Text(wlan.wlanName)
+                            Spacer()
+                            if let band = wlan.band {
+                                Text(band)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if let vlan = wlan.vlan {
+                                Text("VLAN \(vlan)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .listRowBackground(Color.cardBackground)
+            }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
