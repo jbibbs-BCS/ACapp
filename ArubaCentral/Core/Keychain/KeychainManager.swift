@@ -26,17 +26,24 @@ final class KeychainManager {
 
     func save(_ value: String, for key: Key) throws {
         guard let data = value.data(using: .utf8) else { throw KeychainError.dataCorrupted }
-        let query: [CFString: Any] = [
-            kSecClass:          kSecClassGenericPassword,
-            kSecAttrService:    service,
-            kSecAttrAccount:    key.rawValue,
-            // ThisDeviceOnly (A-6): the tenant OAuth secret & tokens must not ride iCloud
-            // Keychain sync or device backups off this device.
-            kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            kSecValueData:      data
+        // Identity attributes only — used to locate and remove any existing item
+        // regardless of how it was stored. kSecAttrAccessible and kSecValueData are NOT
+        // delete-match attributes: including them lets a stale item (e.g. a pre-A-6
+        // WhenUnlocked item, or one holding a different value) survive the delete, so the
+        // subsequent SecItemAdd collides with errSecDuplicateItem (-25299).
+        let identity: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: key.rawValue
         ]
-        SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
+        SecItemDelete(identity as CFDictionary)
+
+        var addQuery = identity
+        // ThisDeviceOnly (A-6): the tenant OAuth secret & tokens must not ride iCloud
+        // Keychain sync or device backups off this device.
+        addQuery[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        addQuery[kSecValueData]      = data
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else { throw KeychainError.saveFailed(status) }
     }
 

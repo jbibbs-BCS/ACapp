@@ -64,4 +64,29 @@ final class StorageSecurityTests: XCTestCase {
         try keychain.save("round-trip-value", for: .clientId)
         XCTAssertEqual(try keychain.retrieve(for: .clientId), "round-trip-value")
     }
+
+    // Regression: re-saving over an item stored under a DIFFERENT accessibility (e.g. a
+    // pre-A-6 WhenUnlocked item from an older build) must overwrite it — not fail with
+    // errSecDuplicateItem (-25299). The delete step must match on identity only
+    // (class/service/account); kSecAttrAccessible/kSecValueData are not delete-match
+    // attributes, so including them leaves the stale item and the add collides.
+    func test_A6_reSaveOverItemWithDifferentAccessibilitySucceeds() throws {
+        let account = KeychainManager.Key.clientSecret.rawValue
+        // Simulate a legacy item written by an older build (plain WhenUnlocked).
+        let legacy: [CFString: Any] = [
+            kSecClass:          kSecClassGenericPassword,
+            kSecAttrService:    service,
+            kSecAttrAccount:    account,
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked,
+            kSecValueData:      Data("old-secret".utf8)
+        ]
+        XCTAssertEqual(SecItemAdd(legacy as CFDictionary, nil), errSecSuccess)
+
+        // New build saves again — must succeed and overwrite.
+        XCTAssertNoThrow(try keychain.save("new-secret", for: .clientSecret))
+        XCTAssertEqual(try keychain.retrieve(for: .clientSecret), "new-secret")
+        XCTAssertEqual(accessibility(of: account),
+                       kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String,
+                       "Re-saved item must carry the ThisDeviceOnly accessibility (A-6).")
+    }
 }
