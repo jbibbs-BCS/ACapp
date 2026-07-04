@@ -48,60 +48,6 @@ final class ClientsViewModelTests: XCTestCase {
         if case .idle = sut.clientsState { } else { XCTFail("Expected idle after clearing site") }
     }
 
-    // MARK: - search
-
-    func testSearchQuerySentToAPI() async {
-        mockClient.clientsResult = .success(.empty())
-        await sut.search(query: "10.0.1.5")
-        XCTAssertEqual(mockClient.lastSearchQuery, "10.0.1.5")
-    }
-
-    func testSearchWithSiteFilterKeepsSite() async {
-        mockClient.clientsResult = .success(.empty())
-        sut.selectedSite = "HQ"
-        await sut.search(query: "mac-addr")
-        XCTAssertEqual(mockClient.lastSiteFilter, "HQ")
-        XCTAssertEqual(mockClient.lastSearchQuery, "mac-addr")
-    }
-
-    func testEmptySearchWithSiteReloadsForSite() async {
-        mockClient.clientsResult = .success(.of([makeClient("aa:11")]))
-        await sut.selectSite("HQ")
-        await sut.search(query: "")
-        // Should reload for site, not search
-        XCTAssertNil(mockClient.lastSearchQuery)
-        XCTAssertEqual(mockClient.lastSiteFilter, "HQ")
-    }
-
-    func testEmptySearchWithNoSiteResetsToIdle() async {
-        await sut.search(query: "")
-        if case .idle = sut.clientsState { } else { XCTFail("Expected idle") }
-    }
-
-    // MARK: - Pagination
-
-    func testLoadNextPageAppendsClients() async {
-        let firstPage  = (0..<100).map { makeClient("aa:\($0)") }
-        let secondPage = (100..<130).map { makeClient("bb:\($0)") }
-
-        mockClient.clientsResult = .success(PaginatedResponse(items: firstPage, total: 130, next: "page2"))
-        await sut.selectSite("HQ")
-
-        mockClient.clientsResult = .success(PaginatedResponse(items: secondPage, total: 130, next: nil))
-        await sut.loadNextPage()
-
-        guard case .loaded(let items) = sut.clientsState else { return XCTFail() }
-        XCTAssertEqual(items.count, 130)
-    }
-
-    func testLoadNextPageDoesNothingWhenNoMore() async {
-        mockClient.clientsResult = .success(.of([makeClient("aa:11")]))
-        await sut.selectSite("HQ")
-        let callsBefore = mockClient.fetchClientsCallCount
-        await sut.loadNextPage()
-        XCTAssertEqual(mockClient.fetchClientsCallCount, callsBefore)
-    }
-
     // MARK: - wireless/wired grouping
 
     func testWirelessClientsCount() async {

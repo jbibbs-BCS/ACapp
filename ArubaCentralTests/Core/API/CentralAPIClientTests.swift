@@ -39,14 +39,15 @@ final class CentralAPIClientTests: XCTestCase {
     func testFetchSiteHealthDecodesResponse() async throws {
         MockURLProtocol.respondWith(statusCode: 200, json: """
         {
-          "sites": [
+          "items": [
             {
-              "site_id": "s1", "site_name": "HQ",
-              "health_score": 90, "ap_count": 10,
-              "switch_count": 2, "client_count": 100
+              "id": "s1", "siteName": "HQ",
+              "health": {"groups": [{"name":"Poor","value":0},{"name":"Fair","value":10},{"name":"Good","value":90}]},
+              "devices": {"count": 10},
+              "clients": {"count": 100},
+              "alerts": {"totalCount": 0, "groups": []}
             }
-          ],
-          "total": 1
+          ]
         }
         """)
         let sites = try await sut.fetchSiteHealth()
@@ -98,7 +99,7 @@ final class CentralAPIClientTests: XCTestCase {
             capturedRequest = request
             let response = HTTPURLResponse(url: request.url!, statusCode: 200,
                                            httpVersion: nil, headerFields: nil)!
-            let json = #"{"aps":[],"total":0,"next":null}"#
+            let json = #"{"items":[],"next":null}"#
             return (response, Data(json.utf8))
         }
 
@@ -114,7 +115,7 @@ final class CentralAPIClientTests: XCTestCase {
             capturedURL = request.url
             let response = HTTPURLResponse(url: request.url!, statusCode: 200,
                                            httpVersion: nil, headerFields: nil)!
-            return (response, Data(#"{"aps":[],"total":0,"next":null}"#.utf8))
+            return (response, Data(#"{"items":[],"next":null}"#.utf8))
         }
 
         _ = try await sut.fetchAPs(site: "HQ Campus", search: nil, limit: 100, next: nil)
@@ -144,7 +145,7 @@ final class CentralAPIClientTests: XCTestCase {
                 // Retry of original request
                 let r = HTTPURLResponse(url: request.url!, statusCode: 200,
                                         httpVersion: nil, headerFields: nil)!
-                let body = #"{"sites":[{"site_id":"s1","site_name":"HQ","health_score":90,"ap_count":1,"switch_count":1,"client_count":1}],"total":1}"#
+                let body = #"{"items":[{"id":"s1","siteName":"HQ","health":{"groups":[{"name":"Poor","value":0},{"name":"Fair","value":0},{"name":"Good","value":90}]},"devices":{"count":2},"clients":{"count":1},"alerts":{"totalCount":0,"groups":[]}}]}"#
                 return (r, Data(body.utf8))
             }
         }

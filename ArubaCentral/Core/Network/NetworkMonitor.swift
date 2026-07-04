@@ -11,10 +11,7 @@ final class NetworkMonitor: ObservableObject {
     private var offlineTask: Task<Void, Never>?
 
     init() {
-        #if targetEnvironment(simulator) || os(macOS)
-        return  // NWPathMonitor unreliable on simulator; macOS sandbox blocks probes
-        #endif
-
+        #if !targetEnvironment(simulator) && !os(macOS)
         monitor.pathUpdateHandler = { [weak self] path in
             let satisfied = path.status == .satisfied
             Task { @MainActor [weak self] in
@@ -36,10 +33,11 @@ final class NetworkMonitor: ObservableObject {
             }
         }
         monitor.start(queue: queue)
+        #endif
     }
 
     // TCP probes to known IPs — no DNS needed, harder to block than HTTP.
-    private static func checkReachability() async -> Bool {
+    private nonisolated static func checkReachability() async -> Bool {
         await withTaskGroup(of: Bool.self) { group in
             for (host, port) in [("1.1.1.1", 53), ("8.8.8.8", 53), ("17.253.144.10", 443)] {
                 group.addTask { await tcpProbe(host: host, port: UInt16(port)) }
@@ -51,25 +49,28 @@ final class NetworkMonitor: ObservableObject {
         }
     }
 
-    private static func tcpProbe(host: String, port: UInt16) async -> Bool {
-        await withCheckedContinuation { continuation in
+    private nonisolated static func tcpProbe(host: String, port: UInt16) async -> Bool {
+        // Both closures run on the same serial queue `q`, so `Guard.isDone`
+        // access is serialized despite the @unchecked Sendable annotation.
+        final class Guard: @unchecked Sendable { var isDone = false }
+        return await withCheckedContinuation { continuation in
             let conn = NWConnection(
                 host: NWEndpoint.Host(host),
                 port: NWEndpoint.Port(rawValue: port)!,
                 using: .tcp
             )
             let q = DispatchQueue(label: "com.aruba.central.probe.\(host)")
-            var done = false
+            let g = Guard()
             conn.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    guard !done else { return }
-                    done = true
+                    guard !g.isDone else { return }
+                    g.isDone = true
                     conn.cancel()
                     continuation.resume(returning: true)
                 case .failed, .cancelled:
-                    guard !done else { return }
-                    done = true
+                    guard !g.isDone else { return }
+                    g.isDone = true
                     continuation.resume(returning: false)
                 default:
                     break
@@ -77,8 +78,8 @@ final class NetworkMonitor: ObservableObject {
             }
             conn.start(queue: q)
             q.asyncAfter(deadline: .now() + 5) {
-                guard !done else { return }
-                done = true
+                guard !g.isDone else { return }
+                g.isDone = true
                 conn.cancel()
                 continuation.resume(returning: false)
             }

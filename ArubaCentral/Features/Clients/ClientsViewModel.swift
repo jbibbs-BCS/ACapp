@@ -5,12 +5,10 @@ import Combine
 final class ClientsViewModel: ObservableObject {
     @Published private(set) var clientsState: LoadState<[CentralClient]> = .idle
     @Published var selectedSite: String? = nil
+    @Published private(set) var sites: [String] = []
 
     private let client: CentralAPIClientProtocol
     private let pageSize = 100
-    private var nextCursor: String? = nil
-    private var hasMore  = false
-    private var isLoadingMore = false
 
     var wirelessClients: [CentralClient] {
         guard case .loaded(let items) = clientsState else { return [] }
@@ -26,62 +24,37 @@ final class ClientsViewModel: ObservableObject {
         self.client = apiClient
     }
 
+    func loadSites() async {
+        guard sites.isEmpty else { return }
+        if let fetched = try? await client.fetchSiteHealth() {
+            sites = fetched.map { $0.name }.sorted()
+        }
+    }
+
     func selectSite(_ site: String?) async {
         selectedSite = site
         guard let site else { clientsState = .idle; return }
-        nextCursor = nil
         clientsState = .loading
-        await fetchClients(site: site, search: nil, next: nil, appending: false)
-    }
 
-    func search(query: String) async {
-        guard !query.isEmpty else {
-            if let site = selectedSite { await fetchClientsForSite(site) }
-            else { clientsState = .idle }
-            return
+        var all: [CentralClient] = []
+        var cursor: String? = nil
+        do {
+            repeat {
+                let page = try await client.fetchClients(site: site, search: nil,
+                                                         limit: pageSize, next: cursor)
+                all.append(contentsOf: page.items)
+                cursor = page.next
+                clientsState = .loaded(all)
+            } while cursor != nil
+        } catch let error as APIError {
+            if all.isEmpty { clientsState = .error(error) }
+        } catch {
+            if all.isEmpty { clientsState = .error(.networkError) }
         }
-        nextCursor = nil
-        clientsState = .loading
-        await fetchClients(site: selectedSite, search: query, next: nil, appending: false)
-    }
-
-    func loadNextPage() async {
-        guard hasMore, !isLoadingMore else { return }
-        guard let site = selectedSite else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
-        await fetchClients(site: site, search: nil, next: nextCursor, appending: true)
     }
 
     func refresh() async {
-        guard let site = selectedSite else { return }
-        nextCursor = nil
-        await fetchClients(site: site, search: nil, next: nil, appending: false)
+        await selectSite(selectedSite)
     }
 
-    // MARK: - Private
-
-    private func fetchClientsForSite(_ site: String) async {
-        nextCursor = nil
-        await fetchClients(site: site, search: nil, next: nil, appending: false)
-    }
-
-    private func fetchClients(site: String?, search: String?, next: String?, appending: Bool) async {
-        do {
-            let page = try await client.fetchClients(site: site, search: search,
-                                                     limit: pageSize, next: next)
-            self.nextCursor = page.next
-            self.hasMore    = page.hasMore
-
-            if appending, case .loaded(let existing) = clientsState {
-                clientsState = .loaded(existing + page.items)
-            } else {
-                clientsState = .loaded(page.items)
-            }
-        } catch let error as APIError {
-            if !appending { clientsState = .error(error) }
-        } catch {
-            if !appending { clientsState = .error(.networkError) }
-        }
-    }
 }

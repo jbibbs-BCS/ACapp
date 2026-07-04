@@ -6,7 +6,7 @@ final class SiteDetailViewModelTests: XCTestCase {
 
     var mockClient: MockCentralAPIClient!
     var sut: SiteDetailViewModel!
-    let site = Site(id: "s1", name: "HQ", healthScore: 90, apCount: 2, switchCount: 1, clientCount: 50)
+    let site = Site(id: "s1", name: "HQ", healthPct: 90, deviceCount: 3, clientCount: 50)
 
     override func setUp() {
         super.setUp()

@@ -7,7 +7,7 @@ final class ClientDetailViewTests: XCTestCase {
     var mockClient: MockCentralAPIClient!
     var sut: ClientDetailViewModel!
 
-    let client = CentralClient(
+    let wirelessClient = CentralClient(
         macAddress: "aa:11:bb:22:cc:33", name: "MacBook-Josh",
         ipAddress: "10.0.1.100", connectionType: .wireless,
         associatedDeviceSerial: "AP-SN001", site: "HQ",
@@ -16,47 +16,59 @@ final class ClientDetailViewTests: XCTestCase {
         connectedAt: Date(timeIntervalSince1970: 1_751_000_000)
     )
 
+    let wiredClient = CentralClient(
+        macAddress: "bb:22:cc:33:dd:44", name: "Printer-01",
+        ipAddress: "10.0.1.200", connectionType: .wired,
+        associatedDeviceSerial: "SW-SN001", site: "HQ",
+        ssid: nil, vlan: 10, port: "1/1/1",
+        signalStrength: nil, txDataRate: nil, rxDataRate: nil,
+        connectedAt: nil
+    )
+
     override func setUp() {
         super.setUp()
         mockClient = MockCentralAPIClient()
-        sut = ClientDetailViewModel(client: client, apiClient: mockClient)
     }
 
     override func tearDown() { sut = nil; mockClient = nil; super.tearDown() }
 
-    func testLoadFetchesClientDetail() async {
-        mockClient.clientDetailResult = .success(client)
+    func testDetailPreLoadedFromInit() {
+        sut = ClientDetailViewModel(client: wirelessClient, apiClient: mockClient)
+        guard case .loaded(let detail) = sut.detailState else {
+            return XCTFail("Expected detailState to be .loaded immediately after init")
+        }
+        XCTAssertEqual(detail.macAddress, wirelessClient.macAddress)
+    }
+
+    func testLoadSetsConnectedNameForWirelessClient() async {
+        let ap = AccessPoint(serial: "AP-SN001", name: "AP-Lobby", model: "AP-635",
+                             status: .up, ipAddress: nil, macAddress: "",
+                             firmware: nil, uptime: nil, site: "HQ", clientCount: nil)
+        mockClient.apDetailResult = .success(ap)
+        sut = ClientDetailViewModel(client: wirelessClient, apiClient: mockClient)
         await sut.load()
-        guard case .loaded(let detail) = sut.detailState else { return XCTFail() }
-        XCTAssertEqual(detail.macAddress, "aa:11:bb:22:cc:33")
+        XCTAssertEqual(sut.connectedDeviceName, "AP-Lobby")
     }
 
-    func testLoadSetsErrorOnFailure() async {
-        mockClient.clientDetailResult = .failure(.networkError)
+    func testLoadSetsConnectedNameForWiredClient() async {
+        let sw = CentralSwitch(serial: "SW-SN001", name: "Core-Switch-01", model: "6300M",
+                               status: .up, ipAddress: nil, macAddress: nil,
+                               firmware: nil, uptime: nil, site: "HQ", stackId: nil)
+        mockClient.switchDetailResult = .success(sw)
+        sut = ClientDetailViewModel(client: wiredClient, apiClient: mockClient)
         await sut.load()
-        guard case .error = sut.detailState else { return XCTFail("Expected error") }
+        XCTAssertEqual(sut.connectedDeviceName, "Core-Switch-01")
     }
 
-    func testDisconnectCallsAPIWithAPSerial() async {
-        await sut.disconnect()
-        XCTAssertEqual(mockClient.disconnectCallCount, 1)
-    }
-
-    func testDisconnectSetsErrorOnFailure() async {
-        mockClient.disconnectError = .serverError(500)
-        await sut.disconnect()
-        XCTAssertNotNil(sut.actionError)
-    }
-
-    func testDisconnectDoesNothingWhenNoAPSerial() async {
-        let clientWithNoAP = CentralClient(
-            macAddress: "aa:11", name: nil, ipAddress: nil,
+    func testLoadDoesNothingWhenNoSerial() async {
+        let clientWithNoSerial = CentralClient(
+            macAddress: "cc:33", name: nil, ipAddress: nil,
             connectionType: .wired, associatedDeviceSerial: nil,
             site: nil, ssid: nil, vlan: nil, port: nil,
             signalStrength: nil, txDataRate: nil, rxDataRate: nil, connectedAt: nil
         )
-        sut = ClientDetailViewModel(client: clientWithNoAP, apiClient: mockClient)
-        await sut.disconnect()
-        XCTAssertEqual(mockClient.disconnectCallCount, 0)
+        sut = ClientDetailViewModel(client: clientWithNoSerial, apiClient: mockClient)
+        await sut.load()
+        XCTAssertNil(sut.connectedDeviceName)
     }
 }

@@ -76,23 +76,6 @@ final class DevicesViewModelTests: XCTestCase {
         XCTAssertEqual(mockClient.lastSiteFilter, "HQ Campus")
     }
 
-    // MARK: - Search
-
-    func testSearchQueryPassedToAPICall() async {
-        mockClient.apsResult      = .success(.empty())
-        mockClient.switchesResult = .success(.empty())
-        await sut.search(query: "lobby")
-        XCTAssertEqual(mockClient.lastSearchQuery, "lobby")
-    }
-
-    func testEmptySearchResetsToFullLoad() async {
-        mockClient.apsResult      = .success(.of([makeAP("AP1")]))
-        mockClient.switchesResult = .success(.of([makeSW("SW1")]))
-        await sut.search(query: "")
-        guard case .loaded(let items) = sut.devicesState else { return XCTFail() }
-        XCTAssertEqual(items.count, 2)
-    }
-
     // MARK: - Helpers
 
     private func makeAP(_ serial: String) -> AccessPoint {
