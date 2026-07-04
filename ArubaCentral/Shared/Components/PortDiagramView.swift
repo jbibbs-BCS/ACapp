@@ -1,8 +1,35 @@
 import SwiftUI
 
+/// A stack member's ports, for separating members in the port diagram.
+struct PortMemberGroup: Identifiable, Equatable {
+    let member: String            // "" for member-less ids (e.g. "A3")
+    let ports: [SwitchInterface]
+    var id: String { member }
+}
+
 enum PortDiagramLayout {
     static func columns(for count: Int) -> Int {
         count <= 8 ? 4 : 12
+    }
+
+    /// Groups ports by stack member — the leading component before the first "/"
+    /// ("1" from "1/13" or "1/1/4"). Port ids without a "/" (e.g. "A3") share a
+    /// single group, so a standalone switch renders as one grid. First-seen order
+    /// is preserved.
+    static func groupedByMember(_ ports: [SwitchInterface]) -> [PortMemberGroup] {
+        var order: [String] = []
+        var map: [String: [SwitchInterface]] = [:]
+        for port in ports {
+            let key: String
+            if let slash = port.portId.firstIndex(of: "/") {
+                key = String(port.portId[..<slash])
+            } else {
+                key = ""
+            }
+            if map[key] == nil { order.append(key) }
+            map[key, default: []].append(port)
+        }
+        return order.map { PortMemberGroup(member: $0, ports: map[$0]!) }
     }
 }
 
@@ -40,14 +67,19 @@ struct PortDiagramView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
-                    spacing: 6
-                ) {
-                    ForEach(ports) { port in
-                        PortCell(port: port)
-                            .onTapGesture { selectedPort = port }
+            ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                VStack(alignment: .leading, spacing: 20) {
+                    ForEach(PortDiagramLayout.groupedByMember(ports)) { group in
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
+                            alignment: .leading,
+                            spacing: 6
+                        ) {
+                            ForEach(group.ports) { port in
+                                PortCell(port: port)
+                                    .onTapGesture { selectedPort = port }
+                            }
+                        }
                     }
                 }
                 .padding(16)
@@ -100,16 +132,15 @@ private struct PortCell: View {
                     .strokeBorder(port.status.swiftUIColor, lineWidth: 1.5)
             )
             .overlay(
-                Text(shortPortId(port.portId))
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                Text(port.portId)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(port.status.swiftUIColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, 2)
             )
             .frame(width: 44, height: 44)
             .accessibilityLabel("Port \(port.portId), \(port.status.rawValue)")
-    }
-
-    private func shortPortId(_ id: String) -> String {
-        id.components(separatedBy: "/").last ?? id
     }
 }
 
@@ -125,29 +156,17 @@ private struct PortDetailSheet: View {
         NavigationStack {
             List {
                 Section("Port Info") {
-                    LabeledContent("Port ID") {
-                        Text(port.portId)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
+                    LabeledContent("Port ID", value: port.portId)
                     if let description = port.description, !description.isEmpty {
                         LabeledContent("Description", value: description)
                     }
                     LabeledContent("Status", value: port.status.rawValue)
                     if let speed = port.speed { LabeledContent("Speed", value: formatSpeed(speed)) }
                     if let vlan = port.vlan {
-                        LabeledContent("Native VLAN") {
-                            Text("\(vlan)")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
+                        LabeledContent("Native VLAN", value: "\(vlan)")
                     }
                     if let ids = port.allowedVlanIds, !ids.isEmpty {
-                        LabeledContent("Allowed VLANs") {
-                            Text(ids.map(String.init).joined(separator: ", "))
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
+                        LabeledContent("Allowed VLANs", value: ids.map(String.init).joined(separator: ", "))
                     }
                     if let neighbour = port.neighbour { LabeledContent("Neighbour", value: neighbour) }
                     if let role = port.neighbourRole { LabeledContent("Neighbour Role", value: role) }
