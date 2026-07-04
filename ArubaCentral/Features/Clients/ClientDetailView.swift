@@ -59,6 +59,7 @@ struct ClientDetailView: View {
             Section("Connection") {
                 LabeledContent("Type",  value: client.connectionType == .wireless ? "Wireless" : "Wired")
                 if let ssid = client.ssid    { LabeledContent("SSID",   value: ssid) }
+                if let role = client.role    { LabeledContent("Role",   value: role) }
                 if let port = client.port    { LabeledContent("Port",   value: port) }
                 if let vlan = client.vlan    { LabeledContent("VLAN",   value: "\(vlan)") }
                 if let dev = client.associatedDeviceSerial {
@@ -78,9 +79,16 @@ struct ClientDetailView: View {
                     if let rx = client.rxDataRate {
                         LabeledContent("RX Rate",  value: String(format: "%.0f Mbps", rx))
                     }
+                    if let band = client.wirelessBand {
+                        LabeledContent("Band",     value: band)
+                    }
+                    if let channel = client.wirelessChannel {
+                        LabeledContent("Channel",  value: "\(channel)")
+                    }
                 }
                 .listRowBackground(Color.cardBackground)
             }
+            clientDetailsSection(client)
             if let connectedAt = client.connectedAt {
                 Section("Session") {
                     LabeledContent("Connected", value: connectedAt.formatted(.relative(presentation: .named)))
@@ -91,6 +99,24 @@ struct ClientDetailView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(Color.appBackground)
+    }
+
+    @ViewBuilder
+    private func clientDetailsSection(_ client: CentralClient) -> some View {
+        let hasAny = client.clientManufacturer != nil || client.clientFunction != nil
+            || client.clientVendor != nil || client.clientOperatingSystem != nil
+            || client.clientTags != nil || client.clientCategory != nil
+        if hasAny {
+            Section("Client Details") {
+                if let v = client.clientManufacturer    { LabeledContent("Manufacturer", value: v) }
+                if let v = client.clientFunction         { LabeledContent("Function",     value: v) }
+                if let v = client.clientVendor           { LabeledContent("Vendor",       value: v) }
+                if let v = client.clientOperatingSystem  { LabeledContent("OS",           value: v) }
+                if let v = client.clientTags             { LabeledContent("Tags",         value: v) }
+                if let v = client.clientCategory         { LabeledContent("Category",     value: v) }
+            }
+            .listRowBackground(Color.cardBackground)
+        }
     }
 
 }

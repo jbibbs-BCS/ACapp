@@ -152,6 +152,15 @@ final class ModelDecodingTests: XCTestCase {
             "siteName": "HQ Campus",
             "wlanName": "Corp-WiFi",
             "snr": 28,
+            "role": "wireless",
+            "clientManufacturer": "Samsung",
+            "clientFunction": "Mobile",
+            "clientVendor": "Android",
+            "clientOperatingSystem": "Android",
+            "clientTags": "tag1",
+            "clientCategory": "Smart Device",
+            "wirelessBand": "5GHZ",
+            "wirelessChannel": 52,
             "connectedAt": "2026-06-30T15:56:07.460Z"
         }
         """.data(using: .utf8)!
@@ -160,6 +169,15 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(client.connectionType, .wireless)
         XCTAssertEqual(client.ssid, "Corp-WiFi")
         XCTAssertEqual(client.signalStrength, 28)
+        XCTAssertEqual(client.role, "wireless")
+        XCTAssertEqual(client.clientManufacturer, "Samsung")
+        XCTAssertEqual(client.clientFunction, "Mobile")
+        XCTAssertEqual(client.clientVendor, "Android")
+        XCTAssertEqual(client.clientOperatingSystem, "Android")
+        XCTAssertEqual(client.clientTags, "tag1")
+        XCTAssertEqual(client.clientCategory, "Smart Device")
+        XCTAssertEqual(client.wirelessBand, "5GHZ")
+        XCTAssertEqual(client.wirelessChannel, 52)
         XCTAssertNotNil(client.connectedAt)
     }
 
