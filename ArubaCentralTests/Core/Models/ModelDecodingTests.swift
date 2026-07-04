@@ -31,6 +31,27 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(site.alertCount, 2)
     }
 
+    func testSiteUpDeviceCountSumsGoodAndFairDeviceCounts() throws {
+        // devices.health group values are device COUNTS (not %): Good 62 + Fair 1 = 63.
+        let json = """
+        {
+            "id": "167988450776",
+            "siteName": "Altruria Elementary",
+            "health": {"groups": [{"name":"Poor","value":0},{"name":"Fair","value":0},{"name":"Good","value":100}]},
+            "devices": {
+                "count": 63,
+                "health": {"groups": [{"name":"Poor","value":0},{"name":"Fair","value":1},{"name":"Good","value":62}]}
+            },
+            "clients": {"count": 178},
+            "alerts": {"totalCount": 1}
+        }
+        """.data(using: .utf8)!
+        let site = try decoder.decode(Site.self, from: json)
+        XCTAssertEqual(site.deviceCount, 63)
+        XCTAssertEqual(site.upDeviceCount, 63)   // Good 62 + Fair 1
+        XCTAssertEqual(site.healthPct, 100)      // top-level health stays a percentage
+    }
+
     func testSiteHealthLevelGood() throws {
         let site = try decoder.decode(Site.self, from: siteJSON(goodPct: 85))
         XCTAssertEqual(site.healthLevel, .good)
@@ -55,7 +76,7 @@ final class ModelDecodingTests: XCTestCase {
             "deviceName": "AP-Lobby",
             "model": "AP-635",
             "status": "ONLINE",
-            "publicIpv4": "10.0.1.5",
+            "ipv4": "10.0.1.5",
             "macAddress": "aa:bb:cc:dd:ee:ff",
             "firmwareVersion": "10.4.0.0",
             "uptimeInMillis": 86400000,
@@ -68,6 +89,7 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(ap.name, "AP-Lobby")
         XCTAssertEqual(ap.status, .up)
         XCTAssertEqual(ap.id, "SN001")
+        XCTAssertEqual(ap.ipAddress, "10.0.1.5")   // now from ipv4, not publicIpv4
         XCTAssertEqual(ap.clientCount, 12)
         XCTAssertEqual(ap.uptime, 86400)    // ms → seconds
     }

@@ -40,7 +40,7 @@ struct AccessPoint: Codable, Identifiable, Equatable, Hashable {
         case name        = "deviceName"
         case model
         case status
-        case ipAddress   = "publicIpv4"
+        case ipAddress   = "ipv4"
         case macAddress
         case firmware    = "firmwareVersion"
         case uptimeMs    = "uptimeInMillis"

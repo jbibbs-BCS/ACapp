@@ -161,12 +161,10 @@ private struct APOverviewContent: View {
                             Spacer()
                             if let band = wlan.band {
                                 Text(band)
-                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             if let vlan = wlan.vlan {
                                 Text("VLAN \(vlan)")
-                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }

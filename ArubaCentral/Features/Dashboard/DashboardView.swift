@@ -161,7 +161,7 @@ struct SiteCardView: View {
                 // Stat row
                 HStack(spacing: 0) {
                     statCell(
-                        value: Text("\(site.goodDeviceCount)").foregroundStyle(Color.healthGood)
+                        value: Text("\(site.upDeviceCount)").foregroundStyle(Color.healthGood)
                              + Text("/\(site.deviceCount)").foregroundStyle(Color.primary),
                         label: "DEVICES",
                         icon: "network"
@@ -200,7 +200,7 @@ struct SiteCardView: View {
                 .padding(.vertical, 2)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(site.name), health \(site.healthPct) percent, \(site.goodDeviceCount) of \(site.deviceCount) devices healthy, \(site.clientCount) clients, \(site.alertCount) alerts")
+        .accessibilityLabel("\(site.name), health \(site.healthPct) percent, \(site.upDeviceCount) of \(site.deviceCount) devices up, \(site.clientCount) clients, \(site.alertCount) alerts")
     }
 
     private func statCell(value: Text, label: String, icon: String) -> some View {

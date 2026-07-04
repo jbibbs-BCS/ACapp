@@ -7,6 +7,7 @@ struct Site: Codable, Identifiable, Equatable, Hashable {
     let deviceCount: Int    // total devices at site
     let clientCount: Int    // total connected clients
     let alertCount: Int     // total active alerts
+    let upDeviceCount: Int  // good + fair devices (from devices.health.groups)
 
     var healthLevel: HealthLevel {
         switch healthPct {
@@ -20,10 +21,12 @@ struct Site: Codable, Identifiable, Equatable, Hashable {
 
     // Explicit init for tests and previews (API decoding uses init(from:) below)
     init(id: String, name: String, healthPct: Int,
-         deviceCount: Int, clientCount: Int, alertCount: Int = 0) {
+         deviceCount: Int, clientCount: Int, alertCount: Int = 0,
+         upDeviceCount: Int? = nil) {
         self.id = id; self.name = name; self.healthPct = healthPct
         self.deviceCount = deviceCount; self.clientCount = clientCount
         self.alertCount = alertCount
+        self.upDeviceCount = upDeviceCount ?? deviceCount
     }
 }
 
@@ -37,6 +40,12 @@ extension Site {
     }
     private struct CountContainer: Decodable {
         let count: Int
+    }
+    // devices/clients carry a nested health whose group `value`s are COUNTS
+    // (unlike the top-level `health`, whose values are percentages).
+    private struct DeviceHealthContainer: Decodable {
+        let count: Int
+        let health: HealthContainer?
     }
     private struct AlertsContainer: Decodable {
         let totalCount: Int
@@ -53,7 +62,14 @@ extension Site {
         name = try c.decode(String.self, forKey: .name)
         let hlth = try c.decode(HealthContainer.self, forKey: .health)
         healthPct    = hlth.groups.first(where: { $0.name == "Good" })?.value ?? 0
-        deviceCount  = (try? c.decode(CountContainer.self, forKey: .devices))?.count ?? 0
+        let devicesObj = try? c.decode(DeviceHealthContainer.self, forKey: .devices)
+        deviceCount  = devicesObj?.count ?? 0
+        // devices.health group values are device counts; "up" = Good + Fair.
+        let deviceGroups = devicesObj?.health?.groups ?? []
+        func deviceHealthCount(_ groupName: String) -> Int {
+            deviceGroups.first(where: { $0.name == groupName })?.value ?? 0
+        }
+        upDeviceCount = deviceHealthCount("Good") + deviceHealthCount("Fair")
         clientCount  = (try? c.decode(CountContainer.self, forKey: .clients))?.count ?? 0
         alertCount   = (try? c.decode(AlertsContainer.self, forKey: .alerts))?.totalCount ?? 0
     }
