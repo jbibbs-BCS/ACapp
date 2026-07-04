@@ -61,6 +61,14 @@ final class PreviewMockClient: CentralAPIClientProtocol {
             CentralSwitch(serial: "SW002", name: "SW-Dist-1",  model: "CX 6200F 48-port",
                           status: .up, ipAddress: "10.0.0.2", macAddress: "BB:CC:DD:EE:FF:02",
                           firmware: "10.10.1040", uptime: 1296000, site: site ?? "HQ Campus", stackId: nil),
+            CentralSwitch(serial: "STK-M1", name: "SW-Stack-1", model: "CX 6300M 24-port",
+                          status: .up, ipAddress: "10.0.0.3", macAddress: "BB:CC:DD:EE:FF:03",
+                          firmware: "10.10.1040", uptime: 864000, site: site ?? "HQ Campus",
+                          stackId: "STACK-1", switchRole: "Conductor", deployment: "Stack", stackMemberId: 1),
+            CentralSwitch(serial: "STK-M2", name: "SW-Stack-1", model: "CX 6300M 24-port",
+                          status: .down, ipAddress: "10.0.0.4", macAddress: "BB:CC:DD:EE:FF:04",
+                          firmware: "10.10.1040", uptime: 0, site: site ?? "HQ Campus",
+                          stackId: "STACK-1", switchRole: "Member", deployment: "Stack", stackMemberId: 2),
         ]
         return PaginatedResponse(items: switches, total: switches.count, next: nil)
     }
@@ -79,7 +87,10 @@ final class PreviewMockClient: CentralAPIClientProtocol {
                 status: status,
                 speed: status == .up ? 1_000_000_000 : nil,
                 vlan: 10,
-                connectedDevice: status == .up ? "host-\(i).corp" : nil,
+                neighbour: status == .up ? "host-\(i).corp" : nil,
+                neighbourRole: status == .up ? "Access Point" : nil,
+                allowedVlanIds: status == .up ? [10, 20] : nil,
+                description: status == .up ? "Port \(i)" : nil,
                 txBytes: status == .up ? i * 1_024_000 : nil,
                 rxBytes: status == .up ? i * 512_000 : nil
             )

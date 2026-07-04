@@ -14,35 +14,35 @@ final class ModelDecodingTests: XCTestCase {
     func testSiteDecoding() throws {
         let json = """
         {
-            "site_id": "abc123",
-            "site_name": "HQ Campus",
-            "health_score": 92,
-            "ap_count": 24,
-            "switch_count": 4,
-            "client_count": 310
+            "id": "abc123",
+            "siteName": "HQ Campus",
+            "health": {"groups": [{"name":"Poor","value":0},{"name":"Fair","value":8},{"name":"Good","value":92}]},
+            "devices": {"count": 28},
+            "clients": {"count": 310},
+            "alerts": {"totalCount": 2, "groups": []}
         }
         """.data(using: .utf8)!
         let site = try decoder.decode(Site.self, from: json)
         XCTAssertEqual(site.id, "abc123")
         XCTAssertEqual(site.name, "HQ Campus")
-        XCTAssertEqual(site.healthScore, 92)
-        XCTAssertEqual(site.apCount, 24)
-        XCTAssertEqual(site.switchCount, 4)
+        XCTAssertEqual(site.healthPct, 92)
+        XCTAssertEqual(site.deviceCount, 28)
         XCTAssertEqual(site.clientCount, 310)
+        XCTAssertEqual(site.alertCount, 2)
     }
 
     func testSiteHealthLevelGood() throws {
-        let site = try decoder.decode(Site.self, from: siteJSON(score: 85))
+        let site = try decoder.decode(Site.self, from: siteJSON(goodPct: 85))
         XCTAssertEqual(site.healthLevel, .good)
     }
 
     func testSiteHealthLevelWarning() throws {
-        let site = try decoder.decode(Site.self, from: siteJSON(score: 65))
+        let site = try decoder.decode(Site.self, from: siteJSON(goodPct: 65))
         XCTAssertEqual(site.healthLevel, .warning)
     }
 
     func testSiteHealthLevelCritical() throws {
-        let site = try decoder.decode(Site.self, from: siteJSON(score: 30))
+        let site = try decoder.decode(Site.self, from: siteJSON(goodPct: 30))
         XCTAssertEqual(site.healthLevel, .critical)
     }
 
@@ -51,16 +51,16 @@ final class ModelDecodingTests: XCTestCase {
     func testAccessPointDecoding() throws {
         let json = """
         {
-            "serial": "SN001",
-            "name": "AP-Lobby",
+            "serialNumber": "SN001",
+            "deviceName": "AP-Lobby",
             "model": "AP-635",
-            "status": "Up",
-            "ip_address": "10.0.1.5",
-            "mac_address": "aa:bb:cc:dd:ee:ff",
-            "firmware": "10.4.0.0",
-            "uptime": 86400,
-            "site_name": "HQ Campus",
-            "client_count": 12
+            "status": "ONLINE",
+            "publicIpv4": "10.0.1.5",
+            "macAddress": "aa:bb:cc:dd:ee:ff",
+            "firmwareVersion": "10.4.0.0",
+            "uptimeInMillis": 86400000,
+            "siteName": "HQ Campus",
+            "clientCount": 12
         }
         """.data(using: .utf8)!
         let ap = try decoder.decode(AccessPoint.self, from: json)
@@ -69,16 +69,17 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(ap.status, .up)
         XCTAssertEqual(ap.id, "SN001")
         XCTAssertEqual(ap.clientCount, 12)
+        XCTAssertEqual(ap.uptime, 86400)    // ms → seconds
     }
 
     func testAccessPointOptionalFieldsMissing() throws {
         let json = """
         {
-            "serial": "SN002",
-            "name": "AP-Down",
+            "id": "SN002",
+            "deviceName": "AP-Down",
             "model": "AP-515",
-            "status": "Down",
-            "mac_address": "aa:bb:cc:dd:ee:ff"
+            "status": "OFFLINE",
+            "macAddress": "aa:bb:cc:dd:ee:ff"
         }
         """.data(using: .utf8)!
         let ap = try decoder.decode(AccessPoint.self, from: json)
@@ -92,15 +93,15 @@ final class ModelDecodingTests: XCTestCase {
     func testSwitchDecoding() throws {
         let json = """
         {
-            "serial": "SW001",
-            "name": "Core-Switch-1",
+            "serialNumber": "SW001",
+            "deviceName": "Core-Switch-1",
             "model": "6300M",
-            "status": "Up",
-            "ip_address": "10.0.0.1",
-            "mac_address": "11:22:33:44:55:66",
-            "firmware": "10.13.1010",
-            "uptime": 604800,
-            "site_name": "HQ Campus"
+            "status": "Online",
+            "ipv4": "10.0.0.1",
+            "macAddress": "11:22:33:44:55:66",
+            "firmwareVersion": "10.13.1010",
+            "uptimeInMillis": 604800000,
+            "siteName": "HQ Campus"
         }
         """.data(using: .utf8)!
         let sw = try decoder.decode(CentralSwitch.self, from: json)
@@ -111,6 +112,31 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(sw.model, "6300M")
         XCTAssertEqual(sw.ipAddress, "10.0.0.1")
         XCTAssertEqual(sw.siteName, "HQ Campus")
+        XCTAssertEqual(sw.uptime, 604800)   // ms → seconds
+    }
+
+    func testStackedSwitchDecoding() throws {
+        // Real /switches payload for a stacked member.
+        let json = """
+        {
+            "serialNumber": "CN35HKZ1YX",
+            "deviceName": "Aruba-VSF-2930F",
+            "model": "AS-2930F",
+            "status": "OFFLINE",
+            "stackId": "090064e8-818ee000",
+            "stackMemberId": 2,
+            "switchRole": "Conductor",
+            "deployment": "Stack"
+        }
+        """.data(using: .utf8)!
+        let sw = try decoder.decode(CentralSwitch.self, from: json)
+        XCTAssertEqual(sw.status, .down)          // "OFFLINE" → .down
+        XCTAssertEqual(sw.stackId, "090064e8-818ee000")
+        XCTAssertEqual(sw.stackMemberId, 2)
+        XCTAssertEqual(sw.switchRole, "Conductor")
+        XCTAssertEqual(sw.deployment, "Stack")
+        XCTAssertTrue(sw.isStacked)
+        XCTAssertTrue(sw.isConductor)
     }
 
     // MARK: - CentralClient
@@ -118,37 +144,37 @@ final class ModelDecodingTests: XCTestCase {
     func testWirelessClientDecoding() throws {
         let json = """
         {
-            "mac_address": "aa:11:bb:22:cc:33",
-            "name": "MacBook-Josh",
-            "ip_address": "10.0.1.100",
-            "client_type": "WIRELESS",
-            "associated_device": "SN001",
-            "site_name": "HQ Campus",
-            "ssid": "Corp-WiFi",
-            "signal_strength": -65,
-            "connected_at": 1751000000
+            "macAddress": "aa:11:bb:22:cc:33",
+            "clientName": "MacBook-Josh",
+            "ipv4": "10.0.1.100",
+            "clientConnectionType": "Wireless",
+            "connectedDeviceSerial": "SN001",
+            "siteName": "HQ Campus",
+            "wlanName": "Corp-WiFi",
+            "snr": 28,
+            "connectedAt": "2026-06-30T15:56:07.460Z"
         }
         """.data(using: .utf8)!
         let client = try decoder.decode(CentralClient.self, from: json)
         XCTAssertEqual(client.macAddress, "aa:11:bb:22:cc:33")
         XCTAssertEqual(client.connectionType, .wireless)
         XCTAssertEqual(client.ssid, "Corp-WiFi")
-        XCTAssertEqual(client.signalStrength, -65)
+        XCTAssertEqual(client.signalStrength, 28)
         XCTAssertNotNil(client.connectedAt)
     }
 
     func testWiredClientDecoding() throws {
         let json = """
         {
-            "mac_address": "dd:44:ee:55:ff:66",
-            "name": "Printer-Floor2",
-            "ip_address": "10.0.2.50",
-            "client_type": "WIRED",
-            "associated_device": "SW001",
-            "site_name": "HQ Campus",
-            "vlan": 20,
+            "macAddress": "dd:44:ee:55:ff:66",
+            "clientName": "Printer-Floor2",
+            "ipv4": "10.0.2.50",
+            "clientConnectionType": "Wired",
+            "connectedDeviceSerial": "SW001",
+            "siteName": "HQ Campus",
+            "vlanId": "20",
             "port": "1/1/4",
-            "connected_at": 1751000000
+            "connectedAt": "2026-06-30T16:00:00.000Z"
         }
         """.data(using: .utf8)!
         let client = try decoder.decode(CentralClient.self, from: json)
@@ -163,20 +189,49 @@ final class ModelDecodingTests: XCTestCase {
     func testAlertDecoding() throws {
         let json = """
         {
-            "alert_id": "ALT001",
-            "alert_name": "AP Down",
+            "id": "22071893000:47765082406",
+            "name": "Insufficient PoE Received",
             "severity": "Critical",
-            "alert_description": "AP-Lobby is unreachable",
-            "device_serial": "SN001",
-            "site_name": "HQ Campus",
-            "created_at": 1751000000,
-            "is_cleared": false
+            "summary": "AP LUHR000001 did not receive the requested PoE power.",
+            "category": "System",
+            "deviceType": "Access Point",
+            "priority": "Very High",
+            "status": "Cleared",
+            "clearedReason": null,
+            "createdAt": "2025-12-10T07:04:33.352Z",
+            "updatedAt": "2025-12-10T08:37:02.475Z"
         }
         """.data(using: .utf8)!
         let alert = try decoder.decode(CentralAlert.self, from: json)
-        XCTAssertEqual(alert.id, "ALT001")
+        XCTAssertEqual(alert.id, "22071893000:47765082406")
         XCTAssertEqual(alert.severity, .critical)
+        XCTAssertEqual(alert.description, "AP LUHR000001 did not receive the requested PoE power.")
+        XCTAssertEqual(alert.category, "System")
+        XCTAssertEqual(alert.deviceType, "Access Point")
+        XCTAssertEqual(alert.priority, "Very High")
+        XCTAssertEqual(alert.status, "Cleared")
+        XCTAssertTrue(alert.isCleared)   // derived from status == "Cleared"
+        XCTAssertNotNil(alert.updatedAt)
+        // createdAt parsed from ISO 8601, not defaulted to now
+        XCTAssertEqual(alert.createdAt.timeIntervalSince1970, 1765350273.352, accuracy: 1.0)
+    }
+
+    func testAlertActiveStatusIsNotCleared() throws {
+        let json = """
+        {
+            "id": "a2",
+            "name": "USB Device Removed from AP",
+            "severity": "Minor",
+            "summary": "A USB device was removed.",
+            "status": "Active",
+            "createdAt": "2025-12-10T08:31:36.710Z",
+            "updatedAt": ""
+        }
+        """.data(using: .utf8)!
+        let alert = try decoder.decode(CentralAlert.self, from: json)
+        XCTAssertEqual(alert.severity, .minor)
         XCTAssertFalse(alert.isCleared)
+        XCTAssertNil(alert.updatedAt)   // empty string → nil
     }
 
     func testAlertSeverityOrdering() {
@@ -190,11 +245,10 @@ final class ModelDecodingTests: XCTestCase {
     func testRadioDecoding() throws {
         let json = """
         {
-            "radio_index": 0,
+            "radioNumber": 0,
             "band": "5GHz",
-            "channel": 36,
-            "ssid": "Corp-WiFi",
-            "client_count": 8,
+            "channel": "36",
+            "clientCount": 8,
             "throughput": 245.5
         }
         """.data(using: .utf8)!
@@ -209,19 +263,25 @@ final class ModelDecodingTests: XCTestCase {
     func testSwitchInterfaceDecoding() throws {
         let json = """
         {
-            "port_id": "1/1/1",
-            "port_status": "Up",
-            "speed": "1G",
-            "vlan": 10,
-            "connected_device": "MacBook-Josh",
-            "tx_bytes": 1000000,
-            "rx_bytes": 500000
+            "id": "1/1/1",
+            "name": "GigabitEthernet1/0/1",
+            "description": "Uplink to Core Switch",
+            "operStatus": "Up",
+            "speed": 1000000000,
+            "nativeVlan": 10,
+            "allowedVlanIds": [10, 20],
+            "neighbour": "CoreSwitch",
+            "neighbourRole": "Core Switch"
         }
         """.data(using: .utf8)!
         let iface = try decoder.decode(SwitchInterface.self, from: json)
         XCTAssertEqual(iface.portId, "1/1/1")
         XCTAssertEqual(iface.status, .up)
-        XCTAssertEqual(iface.speed, "1G")
+        XCTAssertEqual(iface.speed, 1_000_000_000)
+        XCTAssertEqual(iface.neighbour, "CoreSwitch")
+        XCTAssertEqual(iface.neighbourRole, "Core Switch")
+        XCTAssertEqual(iface.allowedVlanIds, [10, 20])
+        XCTAssertEqual(iface.description, "Uplink to Core Switch")
     }
 
     // MARK: - VLAN
@@ -229,29 +289,30 @@ final class ModelDecodingTests: XCTestCase {
     func testVLANDecoding() throws {
         let json = """
         {
-            "vlan_id": 10,
-            "vlan_name": "Corp",
-            "tagged_ports": ["1/1/1", "1/1/2"],
-            "untagged_ports": ["1/1/3"]
+            "id": "10",
+            "name": "Corp",
+            "taggedPorts": ["1/1/1", "1/1/2"],
+            "untaggedPorts": null
         }
         """.data(using: .utf8)!
         let vlan = try decoder.decode(VLAN.self, from: json)
         XCTAssertEqual(vlan.vlanId, 10)
         XCTAssertEqual(vlan.name, "Corp")
         XCTAssertEqual(vlan.taggedPorts.count, 2)
+        XCTAssertEqual(vlan.untaggedPorts.count, 0)
     }
 
     // MARK: - Helpers
 
-    private func siteJSON(score: Int) -> Data {
+    private func siteJSON(goodPct: Int) -> Data {
         """
         {
-            "site_id": "s1",
-            "site_name": "Test",
-            "health_score": \(score),
-            "ap_count": 1,
-            "switch_count": 1,
-            "client_count": 1
+            "id": "s1",
+            "siteName": "Test",
+            "health": {"groups": [{"name":"Poor","value":0},{"name":"Fair","value":\(100 - goodPct)},{"name":"Good","value":\(goodPct)}]},
+            "devices": {"count": 1},
+            "clients": {"count": 1},
+            "alerts": {"totalCount": 0, "groups": []}
         }
         """.data(using: .utf8)!
     }

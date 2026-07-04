@@ -137,10 +137,10 @@ private struct APOverviewContent: View {
         List {
             Section("Device Info") {
                 LabeledContent("Model", value: ap.model)
-                monoRow("Serial",   ap.serial)
-                if let fw = ap.firmware  { monoRow("Firmware", fw) }
-                if let ip = ap.ipAddress { monoRow("IP",       ip) }
-                monoRow("MAC", ap.macAddress)
+                LabeledContent("Serial", value: ap.serial)
+                if let fw = ap.firmware  { LabeledContent("Firmware", value: fw) }
+                if let ip = ap.ipAddress { LabeledContent("IP",       value: ip) }
+                LabeledContent("MAC", value: ap.macAddress)
             }
             .listRowBackground(Color.cardBackground)
             Section("Status") {
@@ -157,15 +157,6 @@ private struct APOverviewContent: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(Color.appBackground)
-    }
-
-    @ViewBuilder
-    private func monoRow(_ label: String, _ value: String) -> some View {
-        LabeledContent(label) {
-            Text(value)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
-        }
     }
 
     private func uptimeString(_ seconds: Int) -> String {

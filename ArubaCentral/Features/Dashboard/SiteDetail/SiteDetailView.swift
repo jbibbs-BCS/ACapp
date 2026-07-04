@@ -96,24 +96,25 @@ struct SiteDetailView: View {
                         .foregroundStyle(.secondary)
                         .listRowBackground(Color.appBackground)
                 } else {
-                    ForEach(switches) { sw in
-                        NavigationLink(value: sw) {
-                            BrandedDeviceRowView(name: sw.name, model: sw.model,
-                                                 status: sw.status, uptime: sw.uptime)
+                    let entries = switches.groupedIntoStacks()
+                    ForEach(entries) { entry in
+                        Group {
+                            switch entry {
+                            case .standalone(let sw):
+                                NavigationLink(value: sw) {
+                                    BrandedDeviceRowView(name: sw.name, model: sw.model,
+                                                         status: sw.status, uptime: sw.uptime)
+                                }
+                            case .stack(let stack):
+                                NavigationLink(value: stack.representative) {
+                                    StackRowView(stack: stack)
+                                }
+                            }
                         }
                         .listRowBackground(Color.cardBackground)
                         .onAppear {
-                            if sw.id == switches.last?.id {
+                            if entry.id == entries.last?.id {
                                 Task { await viewModel.loadNextSwitchPage() }
-                            }
-                        }
-
-                        if let stackId = sw.stackId,
-                           let members = viewModel.stackMembersMap[stackId] {
-                            ForEach(members) { member in
-                                SiteStackMemberRow(member: member)
-                                    .listRowBackground(Color.cardBackground)
-                                    .padding(.leading, 16)
                             }
                         }
                     }
@@ -133,32 +134,6 @@ struct SiteDetailView: View {
                 .foregroundStyle(Color.brandSectionHeader)
                 .padding(.top, 4)
         }
-    }
-}
-
-// MARK: - Stack member row (site detail)
-
-private struct SiteStackMemberRow: View {
-    let member: StackMember
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "cpu")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .frame(width: 20)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.serial)
-                    .font(.subheadline)
-                if let model = member.model {
-                    Text(model)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            DeviceStatusBadge(status: member.status)
-        }
-        .padding(.vertical, 2)
     }
 }
 

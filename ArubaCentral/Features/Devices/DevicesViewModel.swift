@@ -15,70 +15,70 @@ enum DeviceFilterType: String, CaseIterable, Identifiable, Equatable {
 enum DeviceItem: Identifiable {
     case ap(AccessPoint)
     case switch_(CentralSwitch)
-    case stackMember(StackMember, parentSerial: String)
+    case stack(SwitchStack)
 
     var id: String {
         switch self {
-        case .ap(let ap):                      return ap.serial
-        case .switch_(let sw):                 return sw.serial
-        case .stackMember(let m, _):           return "member-\(m.serial)"
+        case .ap(let ap):      return ap.serial
+        case .switch_(let sw): return sw.serial
+        case .stack(let s):    return "stack-\(s.stackId)"
         }
     }
 
     var serial: String {
         switch self {
-        case .ap(let ap):                      return ap.serial
-        case .switch_(let sw):                 return sw.serial
-        case .stackMember(let m, _):           return m.serial
+        case .ap(let ap):      return ap.serial
+        case .switch_(let sw): return sw.serial
+        case .stack(let s):    return s.representative.serial
         }
     }
 
     var name: String {
         switch self {
-        case .ap(let ap):                      return ap.name
-        case .switch_(let sw):                 return sw.name
-        case .stackMember(let m, _):           return m.serial
+        case .ap(let ap):      return ap.name
+        case .switch_(let sw): return sw.name
+        case .stack(let s):    return s.name
         }
     }
 
     var model: String {
         switch self {
-        case .ap(let ap):                      return ap.model
-        case .switch_(let sw):                 return sw.model
-        case .stackMember(let m, _):           return m.model ?? "Stack Member"
+        case .ap(let ap):      return ap.model
+        case .switch_(let sw): return sw.model
+        case .stack(let s):    return s.model
         }
     }
 
     var status: DeviceStatus {
         switch self {
-        case .ap(let ap):                      return ap.status
-        case .switch_(let sw):                 return sw.status
-        case .stackMember(let m, _):           return m.status
+        case .ap(let ap):      return ap.status
+        case .switch_(let sw): return sw.status
+        case .stack(let s):    return s.status
         }
     }
 
     var uptime: Int? {
         switch self {
-        case .ap(let ap):                      return ap.uptime
-        case .switch_(let sw):                 return sw.uptime
-        case .stackMember:                     return nil
+        case .ap(let ap):      return ap.uptime
+        case .switch_(let sw): return sw.uptime
+        case .stack:           return nil
         }
     }
 
     var siteName: String? {
         switch self {
-        case .ap(let ap):                      return ap.siteName
-        case .switch_(let sw):                 return sw.siteName
-        case .stackMember:                     return nil
+        case .ap(let ap):      return ap.siteName
+        case .switch_(let sw): return sw.siteName
+        case .stack(let s):    return s.siteName
         }
     }
 
     /// Convenience for filter comparisons in tests
     var deviceType: DeviceFilterType {
         switch self {
-        case .ap:           return .ap
-        case .switch_:      return .switch_
-        case .stackMember:  return .switch_
+        case .ap:      return .ap
+        case .switch_: return .switch_
+        case .stack:   return .switch_
         }
     }
 }
@@ -112,23 +112,12 @@ final class DevicesViewModel: ObservableObject {
                                                              limit: pageSize, next: nil)
             let (aps, switches) = try await (apsPage, switchesPage)
 
-            // Collect stack members for stacked switches (best-effort; failures are silently ignored)
-            var stackMembers: [String: [StackMember]] = [:]
-            let allSwitchSerials = Set(switches.items.map { $0.serial })
-            for sw in switches.items {
-                guard let stackId = sw.stackId, stackMembers[stackId] == nil else { continue }
-                if let members = try? await apiClient.fetchStackMembers(serial: stackId) {
-                    // Exclude the conductor (already shown as the switch row itself)
-                    stackMembers[stackId] = members.filter { !allSwitchSerials.contains($0.serial) }
-                }
-            }
-
-            // Build list: APs first, then each switch followed by its stack members
+            // Build list: APs first, then switches — stacked members collapsed into one row per stack.
             var items: [DeviceItem] = aps.items.map { .ap($0) }
-            for sw in switches.items {
-                items.append(.switch_(sw))
-                if let stackId = sw.stackId, let members = stackMembers[stackId] {
-                    items.append(contentsOf: members.map { .stackMember($0, parentSerial: sw.serial) })
+            for entry in switches.items.groupedIntoStacks() {
+                switch entry {
+                case .standalone(let sw): items.append(.switch_(sw))
+                case .stack(let stack):   items.append(.stack(stack))
                 }
             }
 
@@ -150,10 +139,8 @@ final class DevicesViewModel: ObservableObject {
     }
 
     func device(withSerial serial: String) -> DeviceItem? {
-        allItems.first {
-            guard case .stackMember = $0 else { return $0.serial == serial }
-            return false
-        }
+        // For a stack, `serial` is the representative (conductor) serial.
+        allItems.first { $0.serial == serial }
     }
 
     // MARK: - Private

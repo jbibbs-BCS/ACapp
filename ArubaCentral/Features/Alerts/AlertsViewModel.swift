@@ -52,7 +52,13 @@ final class AlertsViewModel: ObservableObject {
                                         deviceSerial: alert.deviceSerial,
                                         siteName: alert.siteName,
                                         createdAt: alert.createdAt,
-                                        isCleared: true)
+                                        isCleared: true,
+                                        category: alert.category,
+                                        deviceType: alert.deviceType,
+                                        priority: alert.priority,
+                                        status: "Cleared",
+                                        clearedReason: alert.clearedReason,
+                                        updatedAt: alert.updatedAt)
                 }
                 alertsState = .loaded(updated)
             }

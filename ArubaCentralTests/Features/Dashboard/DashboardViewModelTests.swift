@@ -105,9 +105,26 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(result[2].name, "Good")
     }
 
+    // MARK: - Hidden sites
+
+    func testTestEquipmentSiteIsHidden() async {
+        let sites = [
+            makeSite(id: "s1", name: "HQ", score: 90),
+            makeSite(id: "s2", name: "Test Equipment", score: 90),
+            makeSite(id: "s3", name: "test equipment", score: 50),   // case-insensitive
+        ]
+        mockClient.sitesResult = .success(sites)
+        await sut.load()
+
+        guard case .loaded(let result) = sut.sitesState else {
+            return XCTFail("Expected loaded")
+        }
+        XCTAssertEqual(result.map(\.name), ["HQ"])
+    }
+
     // MARK: - Helpers
 
     private func makeSite(id: String, name: String, score: Int) -> Site {
-        Site(id: id, name: name, healthScore: score, apCount: 1, switchCount: 1, clientCount: 1)
+        Site(id: id, name: name, healthPct: score, deviceCount: 2, clientCount: 1)
     }
 }

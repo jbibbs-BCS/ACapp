@@ -63,7 +63,7 @@ final class SwitchDetailViewModelTests: XCTestCase {
 
     private func makeInterface(_ portId: String) -> SwitchInterface {
         SwitchInterface(portId: portId, status: .up, speed: 1_000_000_000,
-                        vlan: 10, connectedDevice: nil, txBytes: nil, rxBytes: nil)
+                        vlan: 10, neighbour: nil, txBytes: nil, rxBytes: nil)
     }
 
     private func makeVLAN(_ id: Int) -> VLAN {

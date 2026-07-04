@@ -25,20 +25,28 @@ struct AlertDetailView: View {
             .listRowBackground(Color.cardBackground)
 
             Section("Details") {
-                if let desc = alert.description {
-                    Text(desc).font(.body).foregroundStyle(.secondary)
+                if let summary = alert.description {
+                    Text(summary).font(.body).foregroundStyle(.secondary)
                 }
-                if let device = alert.deviceSerial {
-                    LabeledContent("Device") {
-                        Text(device)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(Color.brandOrange)
-                    }
+                if let category = alert.category {
+                    LabeledContent("Category", value: category)
                 }
-                if let site = alert.siteName {
-                    LabeledContent("Site", value: site)
+                if let deviceType = alert.deviceType {
+                    LabeledContent("Device Type", value: deviceType)
                 }
-                LabeledContent("Time", value: alert.createdAt.formatted(date: .abbreviated, time: .shortened))
+                if let priority = alert.priority {
+                    LabeledContent("Priority", value: priority)
+                }
+                if let state = alert.status {
+                    LabeledContent("State", value: state)
+                }
+                LabeledContent("Created", value: alert.createdAt.formatted(date: .abbreviated, time: .shortened))
+                if let updated = alert.updatedAt {
+                    LabeledContent("Updated", value: updated.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let reason = alert.clearedReason {
+                    LabeledContent("Cleared Reason", value: reason)
+                }
             }
             .listRowBackground(Color.cardBackground)
 
@@ -83,10 +91,11 @@ struct AlertDetailView: View {
     NavigationStack {
         AlertDetailView(
             alert: CentralAlert(
-                id: "a1", name: "AP Down", severity: .critical,
-                description: "AP-Lobby (SN001) is unreachable.",
-                deviceSerial: "SN001", siteName: "HQ Campus",
-                createdAt: Date(), isCleared: false
+                id: "a1", name: "Insufficient PoE Received", severity: .critical,
+                description: "AP LUHR000001 did not receive the requested PoE power which may limit its functions.",
+                createdAt: Date(), isCleared: false,
+                category: "System", deviceType: "Access Point",
+                priority: "Very High", status: "Active"
             ),
             onAcknowledge: {}
         )

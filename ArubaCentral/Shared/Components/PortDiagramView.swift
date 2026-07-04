@@ -130,16 +130,27 @@ private struct PortDetailSheet: View {
                             .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(.secondary)
                     }
+                    if let description = port.description, !description.isEmpty {
+                        LabeledContent("Description", value: description)
+                    }
                     LabeledContent("Status", value: port.status.rawValue)
                     if let speed = port.speed { LabeledContent("Speed", value: formatSpeed(speed)) }
                     if let vlan = port.vlan {
-                        LabeledContent("VLAN") {
+                        LabeledContent("Native VLAN") {
                             Text("\(vlan)")
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    if let dev = port.connectedDevice { LabeledContent("Device", value: dev) }
+                    if let ids = port.allowedVlanIds, !ids.isEmpty {
+                        LabeledContent("Allowed VLANs") {
+                            Text(ids.map(String.init).joined(separator: ", "))
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if let neighbour = port.neighbour { LabeledContent("Neighbour", value: neighbour) }
+                    if let role = port.neighbourRole { LabeledContent("Neighbour Role", value: role) }
                 }
                 if let tx = port.txBytes, let rx = port.rxBytes {
                     Section("Traffic") {
@@ -193,7 +204,7 @@ private struct PortDetailSheet: View {
             SwitchInterface(portId: "1/1/\(i)",
                             status: i % 5 == 0 ? .down : (i % 7 == 0 ? .disabled : .up),
                             speed: 1_000_000_000, vlan: 10,
-                            connectedDevice: nil,
+                            neighbour: nil,
                             txBytes: 1_000_000, rxBytes: 500_000)
         },
         onBounce: { _ in }
