@@ -6,7 +6,7 @@ struct SiteHealthHeaderView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var healthColor: Color { Color.healthColor(for: site.healthLevel) }
-    private var downDeviceCount: Int { site.deviceCount - site.goodDeviceCount }
+    private var downDeviceCount: Int { site.deviceCount - site.upDeviceCount }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -52,7 +52,7 @@ struct SiteHealthHeaderView: View {
         HStack(spacing: 8) {
             StatCardView(
                 title: "Up Devices",
-                value: "\(site.goodDeviceCount)",
+                value: "\(site.upDeviceCount)",
                 systemImage: "checkmark.circle.fill",
                 accentColor: .healthGood
             )
