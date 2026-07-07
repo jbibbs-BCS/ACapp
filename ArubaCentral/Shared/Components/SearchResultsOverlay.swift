@@ -39,7 +39,7 @@ struct SearchResultsOverlay: View {
                             .frame(width: 28)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(result.displayName).font(.body)
-                            Text(result.siteName).font(.caption).foregroundColor(.secondary)
+                            Text(result.subtitle).font(.caption).foregroundColor(.secondary)
                         }
                     }
                     .padding(.vertical, 4)

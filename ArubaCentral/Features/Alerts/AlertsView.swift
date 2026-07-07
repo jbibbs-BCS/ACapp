@@ -18,6 +18,10 @@ struct AlertsView: View {
             )
             .background(Color.appBackground)
             .navigationTitle("Alerts")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.navBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .navigationDestination(for: CentralAlert.self) { alert in
                 AlertDetailView(alert: alert, onAcknowledge: {
                     Task { await viewModel.acknowledge(alertId: alert.id) }
@@ -35,7 +39,8 @@ struct AlertsView: View {
 
     @ViewBuilder
     private func alertList(_ alerts: [CentralAlert]) -> some View {
-        let displayed = severityFilter.map { s in alerts.filter { $0.severity == s } } ?? alerts
+        let active = alerts.filter { !$0.isCleared }
+        let displayed = severityFilter.map { s in active.filter { $0.severity == s } } ?? active
         VStack(spacing: 0) {
             filterBar
             if displayed.isEmpty {
@@ -62,7 +67,7 @@ struct AlertsView: View {
                     )
                     .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
                     .onAppear {
-                        if alert.id == alerts.last?.id { Task { await viewModel.loadNextPage() } }
+                        if alert.id == displayed.last?.id { Task { await viewModel.loadNextPage() } }
                     }
                 }
                 .listStyle(.insetGrouped)

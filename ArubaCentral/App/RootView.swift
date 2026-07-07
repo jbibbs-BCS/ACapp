@@ -7,6 +7,8 @@ struct RootView: View {
     @AppStorage("appearance") private var appearanceRaw: String = "system"
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var selectedTab = 0
+    @State private var devicesPath = NavigationPath()
+    @State private var clientsPath = NavigationPath()
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -84,8 +86,8 @@ struct RootView: View {
                 }
             }
         } else {
-            NavigationStack {
-                DevicesView(client: apiClient)
+            NavigationStack(path: $devicesPath) {
+                DevicesView(client: apiClient, searchPath: $devicesPath)
                     .navigationDestination(for: AccessPoint.self) { ap in
                         APDetailView(ap: ap, apiClient: apiClient)
                     }
@@ -105,8 +107,8 @@ struct RootView: View {
                 Text("Select a client").foregroundColor(.secondary)
             }
         } else {
-            NavigationStack {
-                ClientsView(apiClient: apiClient)
+            NavigationStack(path: $clientsPath) {
+                ClientsView(apiClient: apiClient, searchPath: $clientsPath)
                     .navigationDestination(for: CentralClient.self) { client in
                         ClientDetailView(client: client, apiClient: apiClient)
                     }

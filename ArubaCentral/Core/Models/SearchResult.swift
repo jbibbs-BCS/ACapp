@@ -36,4 +36,18 @@ enum SearchResult: Identifiable {
         case .client(let client): return client.siteName ?? ""
         }
     }
+
+    /// Secondary line for the search results list: site name, plus the client's
+    /// operating system (`clientOperatingSystem`) when present.
+    var subtitle: String {
+        switch self {
+        case .client(let client):
+            return [client.siteName, client.clientOperatingSystem]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: " • ")
+        default:
+            return siteName
+        }
+    }
 }

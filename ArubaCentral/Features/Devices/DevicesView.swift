@@ -4,11 +4,14 @@ struct DevicesView: View {
     private let apiClient: CentralAPIClientProtocol
     @StateObject private var viewModel: DevicesViewModel
     @StateObject private var searchVM: GlobalSearchViewModel
+    @Binding private var searchPath: NavigationPath
 
-    init(client: CentralAPIClientProtocol) {
+    init(client: CentralAPIClientProtocol,
+         searchPath: Binding<NavigationPath> = .constant(NavigationPath())) {
         self.apiClient = client
         _viewModel = StateObject(wrappedValue: DevicesViewModel(apiClient: client))
         _searchVM  = StateObject(wrappedValue: GlobalSearchViewModel(apiClient: client))
+        _searchPath = searchPath
     }
 
     var body: some View {
@@ -88,6 +91,11 @@ struct DevicesView: View {
 
     private func handleDeviceSearchSelection(_ result: SearchResult) {
         searchVM.query = ""
+        switch result {
+        case .ap(let ap):      searchPath.append(ap)
+        case .switch_(let sw): searchPath.append(sw)
+        case .client:          break   // no client destination on the Devices tab
+        }
     }
 }
 

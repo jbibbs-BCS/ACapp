@@ -5,11 +5,14 @@ struct ClientsView: View {
     @StateObject private var viewModel: ClientsViewModel
     @StateObject private var searchVM: GlobalSearchViewModel
     @State private var showingSitePicker = false
+    @Binding private var searchPath: NavigationPath
 
-    init(apiClient: CentralAPIClientProtocol) {
+    init(apiClient: CentralAPIClientProtocol,
+         searchPath: Binding<NavigationPath> = .constant(NavigationPath())) {
         self.apiClient = apiClient
         _viewModel = StateObject(wrappedValue: ClientsViewModel(apiClient: apiClient))
         _searchVM  = StateObject(wrappedValue: GlobalSearchViewModel(apiClient: apiClient))
+        _searchPath = searchPath
     }
 
     var body: some View {
@@ -136,6 +139,9 @@ struct ClientsView: View {
 
     private func handleClientSearchSelection(_ result: SearchResult) {
         searchVM.query = ""
+        if case .client(let client) = result {
+            searchPath.append(client)
+        }
     }
 }
 
