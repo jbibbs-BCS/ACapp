@@ -92,7 +92,11 @@ final class SiteDetailViewModel: ObservableObject {
             } else {
                 switches = page.items
             }
-            switchesState = .loaded(switches)
+            // Sort switches by hostname (natural order, e.g. SW-2 before SW-10).
+            let sorted = switches.sorted {
+                $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            }
+            switchesState = .loaded(sorted)
         } catch let error as APIError {
             if !appending { switchesState = .error(error) }
         } catch {

@@ -114,12 +114,16 @@ final class DevicesViewModel: ObservableObject {
 
             // Build list: APs first, then switches — stacked members collapsed into one row per stack.
             var items: [DeviceItem] = aps.items.map { .ap($0) }
+            var switchItems: [DeviceItem] = []
             for entry in switches.items.groupedIntoStacks() {
                 switch entry {
-                case .standalone(let sw): items.append(.switch_(sw))
-                case .stack(let stack):   items.append(.stack(stack))
+                case .standalone(let sw): switchItems.append(.switch_(sw))
+                case .stack(let stack):   switchItems.append(.stack(stack))
                 }
             }
+            // Sort switches by hostname (natural order, e.g. SW-2 before SW-10).
+            switchItems.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            items.append(contentsOf: switchItems)
 
             allItems = items
             applyFilter()
